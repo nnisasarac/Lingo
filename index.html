@@ -165,7 +165,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div id="lbRoom" class="grp" style="gap:14px" hidden>
       <div class="pval"><span class="lab">Oda kodu</span><span class="big" id="rCode" style="font-size:34px;letter-spacing:.1em"></span></div>
       <p id="rHint">Bu kodu arkadaşına gönder. O da bu sayfayı açıp ARKADAŞLA YARIŞ'a basar ve kodu girer.</p>
-      <p>Sırayla oynanır: her kelimede bir tahmini sen, bir tahmini rakibin yapar ve kelimeyi kim bulursa ödülü o alır. Erken bulunan kelime daha çok kazandırır. Kelimeye kimin başlayacağı her kelimede değişir. 6 tahminde kimse bulamazsa kelime boşa gider.</p>
+      <p>1. tur: kelimeler sırayla birine gelir, o tek başına oynar, diğeri izler. 2. tur: 1. turdaki kasalarınızla başlarsınız; aynı kelimede sırayla tahmin edersiniz, toplam 5 hak vardır, bilen ödülü alır. 2. turda süresinde tahmin etmeyen ya da sözlükte olmayan kelime yazan, kalan bütün hakları rakibe bırakır. Önce 1. Etap'ı, sonra 2. Etap'ı başlatın.</p>
       <div id="hostOpts" class="grp" style="gap:10px">
         <div class="chips" data-g="rlen">
           <button class="chip" id="r4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
@@ -299,7 +299,8 @@ function start(race,opt){
   $("pas").hidden=!fin;
   st.duel=!!(st.race||st.bot);
   $("rivals").hidden=!st.duel;
-  if(race)rp({game:race.epoch,kasa:0,done:0,target:6,fin:false});
+  if(race&&cfg.len==="e2"){st.kasa=raceCarry!=null?raceCarry:ls("lingoRaceCarry")}
+  if(race)rp({game:race.epoch,kasa:st.kasa,done:0,target:6,fin:false});
   $("quitBtn").hidden=!st.practice||cfg.len==="tp";$("pQuit").hidden=!st.practice;
   if(st.practice){$("kasaLab").textContent="Puan";$("rLab").textContent="Doğru"}
   updScore();
@@ -317,7 +318,7 @@ function nextWord(){
   st.known=Array(L).fill(null);st.known[0]=st.ans[0];
   document.querySelectorAll(".k").forEach(k=>k.classList.remove("hit","near","miss"));
   const b=$("board");b.innerHTML="";b.style.maxWidth=[0,0,0,0,300,360,410,440][L]+"px";
-  for(let r=0;r<TRIES+(st.duel?1:0);r++){const row=document.createElement("div");row.className="row";row.style.gridTemplateColumns=`repeat(${L},1fr)`;
+  for(let r=0;r<TRIES+(st.bot?1:0);r++){const row=document.createElement("div");row.className="row";row.style.gridTemplateColumns=`repeat(${L},1fr)`;
     for(let c=0;c<L;c++){const t=document.createElement("div");t.className="t";row.appendChild(t)}b.appendChild(row)}
   const tag=st.final?(st.level===3?"Süper Lingo · "+fmt(SUPER)+" · ":"Final · "):"";
   setMsg(tag+L+" harfli kelime · ilk harf "+st.ans[0]);
@@ -464,9 +465,10 @@ function finish(){
   if(st.bot)$("rivals").hidden=true;
   if(st.practice){$("quitBtn").hidden=true;$("pQuit").hidden=true}
   if(!st.final&&!st.race&&!st.practice){best=Math.max(best,st.kasa);ls("lingoBest",best);ls("lingoLast",st.kasa)}
-  if(st.race)rp({kasa:st.kasa,done:st.done,fin:true});
+  if(st.race){rp({kasa:st.kasa,done:st.done,fin:true});if(cfg.len==="e1"){raceCarry=st.kasa;ls("lingoRaceCarry",st.kasa)}else{raceCarry=null;ls("lingoRaceCarry",0);ls("lingoLast",st.kasa)}}
   $("eRace").hidden=!st.race;$("again").textContent=st.race?"ODAYA DÖN":"TEKRAR OYNA";
-  $("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(st.kasa>st.botKasa?"Bilgisayarı geçtin · finale kaldın":st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
+  if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":"2. tur bitti · kasası fazla olan finale kalır";
+  if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(st.kasa>st.botKasa?"Bilgisayarı geçtin · finale kaldın":st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
   if(st.seeded)$("eLab").textContent+=" · Kod "+st.code+" · puanını arkadaşınla karşılaştır";
   $("eKasa").textContent=fmt(st.kasa);$("eFound").textContent=st.found.length;$("eMiss").textContent=st.missed.length;$("eBest").textContent=fmt(best);
   $("eList").innerHTML=(st.found.length?"<b>Bulunanlar:</b> "+st.found.join(", ")+"<br>":"")+(st.missed.length?"<b>Kaçanlar:</b> "+st.missed.join(", "):"");
@@ -512,7 +514,7 @@ function peerRoom(){
   }))};
 }
 /* ---------- arkadaşla yarış (room) ---------- */
-let RM0=null,RM=null,amHost=false,lastGo=null,roomCode="";
+let raceCarry=null,RM0=null,RM=null,amHost=false,lastGo=null,roomCode="";
 const rp=patch=>{if(RM)RM.presence(patch).catch(()=>{})};
 const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const nickOf=p=>String((p.presence&&p.presence.nick)||"Oyuncu").slice(0,16);
@@ -589,7 +591,7 @@ function renderRace(){
 
 /* ---------- sırayla yarış: ana masa ve kelime çalma ---------- */
 const peerNick=pl=>{const p=RM&&RM.peers().find(x=>x.peer===pl);return p?nickOf(p):"Rakip"};
-const MAXR=6;
+const MAXR=5;
 function raceSetup(){
   const k=st.done;st.hist=st.hist||{};st.hist[k]=[];for(const w in st.hist)if(+w<k-1)delete st.hist[w];
   st.T={w:k,i:0,cur:"",tl:GUESS_T};st.wEnded=false;st.turnRow=-1;st.lastChange=Date.now();st.ghost={};st.busy=true;st.role="wait";
@@ -600,16 +602,23 @@ function raceRows(){
   const o=st.race.order,n=o.length,k=st.done,ps=RM?RM.peers():[];
   const lists={};lists[st.race.me]=st.hist[k]||[];
   o.forEach(pl=>{if(pl===st.race.me)return;const P=ps.find(x=>x.peer===pl);const h=P&&P.presence&&P.presence.g2;lists[pl]=(h&&Array.isArray(h[k]))?h[k]:[]});
-  const rows=[];
-  for(let i=0;i<MAXR;i++){const pl=o[(k+i)%n];const r=(lists[pl]||[]).find(x=>x&&x.i===i)||st.ghost[i];if(!r)break;rows.push({g:String(r.g||"").slice(0,st.n),bad:!!r.bad,by:pl})}
+  const rows=[];let forced=null;st.stop=false;
+  for(let i=0;i<MAXR;i++){
+    const pl=ownerAt(i,forced);const r=(lists[pl]||[]).find(x=>x&&x.i===i)||st.ghost[i];if(!r)break;
+    rows.push({g:String(r.g||"").slice(0,st.n),bad:!!r.bad,by:pl});
+    if(r.bad){if(cfg.len==="e1"){st.stop=true;break}if(!forced)forced=o[(o.indexOf(pl)+1)%n]}
+  }
+  st.forced=forced;
   return rows;
 }
+/* 1. tur: kelimeyi tek kişi oynar (sırayla). 2. tur: sırayla tahmin; süresi geçen ya da sözlükte olmayan kelime yazan, kalan hakların hepsini rakibe bırakır */
+function ownerAt(i,forced){const o=st.race.order,n=o.length,k=st.done;if(cfg.len==="e1")return o[k%n];return forced||o[(k+i)%n]}
 function raceSync(){
   if(!st||!st.race||st.over||st.paused||st.wEnded)return;
   const o=st.race.order,n=o.length,k=st.done;if(!n)return;
   const rows=raceRows();
   const wi=rows.findIndex(r=>!r.bad&&r.g===st.ans);
-  if(wi>=0||rows.length>=MAXR){
+  if(wi>=0||rows.length>=MAXR||st.stop){
     st.wEnded=true;st.role="done";st.busy=true;drawRows(rows,null);
     if(wi>=0){const by=rows[wi].by,mine=by===st.race.me,pz=PRIZE[st.n][Math.min(wi,TRIES-1)];
       setMsg(mine?"Bildin! +"+fmt(pz):peerNick(by)+" bildi",mine?"win":"lose");
@@ -617,17 +626,17 @@ function raceSync(){
     }else{setMsg("Kimse bilemedi · kelime: "+st.ans,"lose");raceEnd("Kimse bilemedi.",false,"Kimse bilemedi")}
     return;
   }
-  const turn=o[(k+rows.length)%n];
+  const turn=ownerAt(rows.length,st.forced);
   if(turn===st.race.me){
     if(st.role!=="active"||st.turnRow!==rows.length){
       st.turnRow=rows.length;st.role="active";st.row=rows.length;st.cur="";st.gt=GUESS_T;st.guesses=new Set(rows.map(r=>r.g));
       drawRows(rows,null);st.T.i=st.row;st.T.cur="";st.T.tl=GUESS_T;rp({t:st.T});st.busy=false;paint();
-      setMsg("Sıra sende · "+(rows.length+1)+". tahmin · "+fmt(PRIZE[st.n][Math.min(rows.length,TRIES-1)]));
+      setMsg((cfg.len==="e1"?"Bu kelime senin · ":st.forced?"Kalan haklar sende · ":"Sıra sende · ")+(rows.length+1)+". tahmin · "+fmt(PRIZE[st.n][Math.min(rows.length,TRIES-1)]));
     }
   }else{
     const P=RM&&RM.peers().find(x=>x.peer===turn),T=P&&P.presence&&P.presence.t;
     const live=T&&T.w===k&&T.i===rows.length;
-    if(st.role!=="watch"||st.turnRow!==rows.length){st.turnRow=rows.length;st.lastChange=Date.now();setMsg("Sıra "+peerNick(turn)+"'de · "+(rows.length+1)+". tahmin")}
+    if(st.role!=="watch"||st.turnRow!==rows.length){st.turnRow=rows.length;st.lastChange=Date.now();setMsg((cfg.len==="e1"?"Bu kelime "+peerNick(turn)+"'in · izliyorsun · ":st.forced?"Kalan haklar "+peerNick(turn)+"'de · ":"Sıra "+peerNick(turn)+"'de · ")+(rows.length+1)+". tahmin")}
     st.role="watch";st.busy=true;
     drawRows(rows,live?String(T.cur||""):"");
     $("clock").textContent=live&&T.tl!=null?T.tl:"–";
@@ -645,7 +654,7 @@ function raceSubmit(timeout){
   st.hist[st.done].push({i:st.row,g,bad});st.T.cur="";
   rp({g2:st.hist,t:st.T});
   if(bad){[...row.children].forEach((t,i)=>{t.className="t flip bad";t.textContent=g[i]||""});
-    setMsg((timeout?"Süre doldu":rep?g+" zaten denendi":g+" sözlükte yok")+" · sıra geçti","lose")}
+    setMsg((timeout?"Süre doldu":rep?g+" zaten denendi":g+" sözlükte yok")+(cfg.len==="e1"?" · kelime bitti":st.forced?"":" · kalan haklar rakibe geçti"),"lose")}
   else{const res=score(g,st.ans);[...row.children].forEach((t,i)=>{t.className="t flip "+res[i];t.textContent=g[i]});
   }
   setTimeout(raceSync,500);
