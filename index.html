@@ -134,6 +134,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="msg" id="msg" aria-live="polite"></div>
     <button class="pas" id="pas" type="button" hidden>PAS · yeni kelime</button>
     <button class="quit" id="quitBtn" type="button" hidden style="align-self:center">Antrenmanı bitir</button>
+    <button class="quit" id="exitBtn" type="button" hidden style="align-self:center">Menüye dön</button>
   </div>
   <div class="kb" id="kb"></div>
 </div>
@@ -156,7 +157,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
         <button class="chip" id="t7" data-v="t7" aria-pressed="false">7 harf</button>
         <button class="chip" id="tp" data-v="tp" aria-pressed="false">Bulmaca</button>
       </div></div>
+    <button class="go" id="runCont" type="button" hidden>DEVAM ET</button>
     <button class="go" id="go">BAŞLA</button>
+    <button class="alt" id="runBtn" type="button">BAŞTAN SONA YARIŞ</button>
     <button class="alt" id="wlBtn" type="button">KELİME LİSTESİ</button>
     <button class="alt" id="codeBtn" type="button" hidden>KODLA YARIŞ</button>
     <button class="alt" id="raceBtn" type="button" hidden>ARKADAŞLA CANLI YARIŞ</button>
@@ -286,6 +289,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div id="eRace" hidden></div>
     <div class="list" id="eList"></div>
     <button class="go" id="again">TEKRAR OYNA</button>
+    <button class="quit" id="endMenu" type="button" hidden>Ana menü</button>
   </div>
 </div>
 
@@ -332,10 +336,10 @@ ROWS.forEach(r=>{const d=document.createElement("div");d.className="kr";r.forEac
 document.querySelectorAll(".chips").forEach(g=>g.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;document.querySelectorAll('.chips[data-g="'+g.dataset.g+'"] .chip').forEach(x=>x.setAttribute("aria-pressed",x===b));cfg[g.dataset.g]=b.dataset.v}));
 const showProg=()=>{const tot=[4,5,6,7].reduce((n,k)=>n+ANS[k].length,0)+Object.values(PUZ).reduce((n,a)=>n+a.length,0);$("reset").textContent="Bildiğin kelimeler: "+SOLVED.size+" / "+tot+" · ilerlemeyi sıfırla";$("reset").dataset.c=""};
 $("reset").addEventListener("click",()=>{const b=$("reset");if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Emin misin? Sıfırlamak için tekrar dokun";return}SOLVED=new Set();SEEN=new Set();putSet("lingoSolved",SOLVED);putSet("lingoSeen",SEEN);showProg()});
-const showBest=()=>{showProg();const b=ls("lingoBest"),l=ls("lingoLast");$("best").textContent=(b?"Etap rekorun: "+fmt(b):"")+(l?(b?" · ":"")+"Finale taşınan kasa: "+fmt(l):"")};
+const showBest=()=>{showProg();showRun();const b=ls("lingoBest"),l=ls("lingoLast");$("best").textContent=(b?"Etap rekorun: "+fmt(b):"")+(l?(b?" · ":"")+"Finale taşınan kasa: "+fmt(l):"")};
 showBest();
 $("go").onclick=()=>start();
-$("again").onclick=()=>{if(st&&st.race){$("end").hidden=true;$("rivals").hidden=true;$("lobby").hidden=false;renderRoom();return}$("end").hidden=true;$("start").hidden=false;showBest()};
+$("again").onclick=()=>{if(st&&st.run&&RUN){$("end").hidden=true;runStart();return}if(st&&st.race){$("end").hidden=true;$("rivals").hidden=true;$("lobby").hidden=false;renderRoom();return}$("end").hidden=true;$("start").hidden=false;showBest()};
 
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function rpick(list,used){const a=list.filter(w=>!used.has(w));return {w:a[Math.floor(st.rng()*a.length)]}}
@@ -352,6 +356,11 @@ function start(race,opt){
   if(race&&cfg.len!=="e1"){st.kasa=raceCarry!=null?raceCarry:ls("lingoRaceCarry")}
   if(!race&&!opt&&!st.practice&&(cfg.len==="e2"||cfg.len==="e3")){st.kasa=ls("lingoLast");
     st.botKasa=cfg.len==="e3"&&ls("lingoBotLast")?ls("lingoBotLast"):Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100}
+  if(runNext&&RUN){runNext=false;st.run=true;
+    if(cfg.len==="f")st.base=RUN.kasa||15000;
+    else if(cfg.len!=="e1"){st.kasa=RUN.kasa;st.botKasa=RUN.bot||Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100;if(!RUN.bot){RUN.bot=st.botKasa;putRun(RUN)}}}
+  else runNext=false;
+  $("exitBtn").hidden=!!race;$("endMenu").hidden=true;
   if(race)rp({game:race.epoch,kasa:st.kasa,done:0,target:6,fin:false});
   $("quitBtn").hidden=!st.practice||cfg.len==="tp";$("pQuit").hidden=!st.practice;
   if(st.practice){$("kasaLab").textContent="Puan";$("rLab").textContent="Doğru"}
@@ -419,8 +428,9 @@ function finalInfo(){
 function wordOver(won,prize){
   st.done++;
   if(won)markSolved(st.ans);else st.missed.push(st.ans);
+  const camp=campaign(won,true);
   updScore();
-  const info=won?"+"+fmt(prize)+" kasaya eklendi. Bu kelime bir daha sorulmayacak.":"Bu kelime ileride tekrar sorulacak.";
+  const info=(won?"+"+fmt(prize)+" kasaya eklendi. Bu kelime bir daha sorulmayacak.":"Bu kelime ileride tekrar sorulacak.")+camp;
   setTimeout(()=>{if(!st.over)showCard(won,info,nextWord)},900);
 }
 function submit(timeout){
@@ -535,9 +545,35 @@ function finish(){
   if(st.seeded)$("eLab").textContent+=" · Kod "+st.code+" · puanını arkadaşınla karşılaştır";
   $("eKasa").textContent=fmt(st.kasa);$("eFound").textContent=st.found.length;$("eMiss").textContent=st.missed.length;$("eBest").textContent=fmt(best);
   $("eList").innerHTML=(st.found.length?"<b>Bulunanlar:</b> "+st.found.join(", ")+"<br>":"")+(st.missed.length?"<b>Kaçanlar:</b> "+st.missed.join(", "):"");
+  $("exitBtn").hidden=true;
+  if(st.run){
+    if(st.final){RUN=null;putRun(null);$("eLab").textContent="Yarışma bitti · "+$("eLab").textContent;$("again").textContent="YENİDEN BAŞLA";st.run=false}
+    else{const nx=NEXT[cfg.len],out=st.bot&&st.botKasa>st.kasa;RUN={stage:nx,kasa:st.kasa,bot:st.botKasa};putRun(RUN);
+      if(cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınıyor";
+      $("again").textContent=(out?"YİNE DE DEVAM ET · ":"")+GONEXT[nx]}
+    $("endMenu").hidden=false;
+  }
   $("end").hidden=false;
   if(st.race)renderRace();
 }
+/* ---------- baştan sona yarışma: etaplar zincirlenir, kasa taşınır, çıkıp devam edilebilir ---------- */
+var RUN=null,runNext=false;
+var NEXT={e1:"e2",e2:"e3",e3:"f"},SNAME={e1:"1. Etap",e2:"2. Etap",e3:"3. Etap",f:"Final"},GONEXT={e2:"2. ETABA GEÇ",e3:"3. ETABA GEÇ",f:"FİNALE GEÇ"};
+function getRun(){try{return JSON.parse(localStorage.getItem("lingoRun")||"null")}catch(e){return null}}
+function putRun(r){try{if(r)localStorage.setItem("lingoRun",JSON.stringify(r));else localStorage.removeItem("lingoRun")}catch(e){}}
+RUN=getRun();
+function showRun(){if(!SNAME)return;const r=RUN||getRun();$("runCont").hidden=!r;if(r)$("runCont").textContent="DEVAM ET · "+SNAME[r.stage]+" · "+fmt(r.kasa)}
+function runStart(){if(!RUN)return;cfg.len=RUN.stage;runNext=true;$("start").hidden=true;$("end").hidden=true;start()}
+$("runBtn").onclick=()=>{RUN={stage:"e1",kasa:0,bot:0};putRun(RUN);runStart()};
+$("runCont").onclick=()=>{RUN=RUN||getRun();runStart()};
+$("endMenu").onclick=()=>{$("end").hidden=true;$("start").hidden=false;showBest()};
+$("exitBtn").onclick=()=>{
+  if(!st||st.race)return;
+  clearInterval(tick);clearInterval(st.pTick);clearInterval(st.pBuzzT);st.over=true;st.paused=false;
+  ["fp","puz","end"].forEach(id=>$(id).hidden=true);$("exitBtn").hidden=true;$("quitBtn").hidden=true;$("pas").hidden=true;$("rivals").hidden=true;
+  $("start").hidden=false;showBest();
+};
+showRun();
 
 
 /* ---------- Claude dışında canlı yarış: PeerJS ile eşler arası bağlantı ---------- */
@@ -771,7 +807,18 @@ function raceFail(){
   st.waitT=setTimeout(()=>{if(st.waitSteal){st.waitSteal=false;st.role="done";raceEnd(peerNick(st.stl)+" tahmin etmedi.",false)}},45000);
   raceWatch();
 }
+/* kampanya: 1. ve 2. turda üst üste 3 kelime bilene bir kelimenin tam puanı ek ödül */
+function campaign(won,own){
+  if(!st||st.practice||st.final||!(cfg.len==="e1"||cfg.len==="e2"))return "";
+  if(won){st.streak=(st.streak||0)+1;
+    if(st.streak>=3){st.streak=0;const b=PRIZE[st.n][0];st.kasa+=b;setMsg("KAMPANYA! +"+fmt(b),"win");return " KAMPANYA! Üst üste 3 kelime bildin: +"+fmt(b)+" tam puan kasana eklendi."}
+    return st.streak===2?" Bir kelime daha bilirsen kampanya: tam puan ödül!":"";}
+  if(own)st.streak=0;
+  return "";
+}
 function raceEnd(info,won,lab){
+  const own=st.plan?(st.race?st.plan.own===st.race.me:st.plan.own==="me"):true;
+  info+=campaign(won,own);
   st.done++;if(!won)st.missed.push(st.ans);updScore();
   setTimeout(()=>{if(!st.over)showCard(won,info,nextWord,lab)},900);
 }
