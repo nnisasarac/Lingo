@@ -145,7 +145,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="grp"><span class="lab">Yarışma</span>
       <div class="chips" data-g="len">
         <button class="chip" id="l4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 5-6 harf</button>
+        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf</button>
         <button class="chip" id="l3" data-v="e3" aria-pressed="false">3. Etap · 5-6 harf</button>
         <button class="chip" id="lf" data-v="f" aria-pressed="false">Final · 4-5-6-7</button>
       </div></div>
@@ -181,11 +181,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div id="lbRoom" class="grp" style="gap:14px" hidden>
       <div class="pval"><span class="lab">Oda kodu</span><span class="big" id="rCode" style="font-size:34px;letter-spacing:.1em"></span></div>
       <p id="rHint">Bu kodu arkadaşına gönder. O da bu sayfayı açıp ARKADAŞLA YARIŞ'a basar ve kodu girer.</p>
-      <p>1. tur (4-5 harf): kelimeler sırayla birinize gelir, sahibi tek oynar, diğeri izler. 2. tur (5-6 harf): yine sırayla birinize gelir; kırmızı olursa ya da 5 hak biterse rakip tek tahminle çalabilir. 3. tur (4 tane 5 ve 4 tane 6 harfli): aynı kelimede sırayla tahmin edilir, toplam 5 hak; yanan kalan bütün hakları rakibe bırakır. Ortak bulmacayı önce bilen alır. Kasalar her tura taşınır; turları sırayla başlatın.</p>
+      <p>1. tur (4-5 harf): kelimeler sırayla birinize gelir, sahibi tek oynar, diğeri izler. 2. tur (4-5 harf): yine sırayla birinize gelir; kırmızı olursa ya da 5 hak biterse rakip tek tahminle çalabilir. 3. tur (4 tane 5 ve 4 tane 6 harfli): aynı kelimede sırayla tahmin edilir, toplam 5 hak; yanan kalan bütün hakları rakibe bırakır. Ortak bulmacayı önce bilen alır. Kasalar her tura taşınır; turları sırayla başlatın.</p>
       <div id="hostOpts" class="grp" style="gap:10px">
         <div class="chips" data-g="rlen">
           <button class="chip" id="r4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-          <button class="chip" id="r5" data-v="e2" aria-pressed="false">2. Etap · 5-6 harf · çalma</button>
+          <button class="chip" id="r5" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf · çalma</button>
           <button class="chip" id="r3" data-v="e3" aria-pressed="false">3. Etap · sırayla tahmin</button>
         </div>
       </div>
@@ -239,7 +239,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="grp"><span class="lab">Etap</span>
       <div class="chips" data-g="clen">
         <button class="chip" id="ce1" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-        <button class="chip" id="ce2" data-v="e2" aria-pressed="false">2. Etap · 5-6 harf</button>
+        <button class="chip" id="ce2" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf</button>
       </div></div>
     <div class="grp"><span class="lab">Yarış kodu</span>
       <form id="cForm" class="row2"><input class="pin" id="cCode" maxlength="6" autocomplete="off" autocapitalize="characters" aria-label="Yarış kodu"><button class="chip" style="flex:none" type="button" id="cNew">YENİ KOD</button></form></div>
@@ -377,7 +377,7 @@ function updScore(){if(st.bot)botRivals();if(st.race&&!st.over)rp({kasa:st.kasa,
 function nextWord(){
   if(st.over)return;
   if(!st.final&&!st.practice&&st.done>=grp()*(st.puzN+1)){endStage();return}
-  const L=st.practice?{t4:4,t5:5,t6:6,t7:7}[cfg.len]:st.final?[4,5,6,7][st.level]:(cfg.len==="e1"?(st.done<grp()?4:5):(st.done<grp()?5:6));
+  const L=st.practice?{t4:4,t5:5,t6:6,t7:7}[cfg.len]:st.final?[4,5,6,7][st.level]:(cfg.len!=="e3"?(st.done<grp()?4:5):(st.done<grp()?5:6));
   const pk=(st.race||st.seeded)?rpick(ANS[L],st.used):pick(ANS[L],st.used);st.allDone=pk.all;
   st.ans=pk.w;st.used.add(st.ans);markSeen(st.ans);st.n=L;st.row=0;st.cur="";st.gt=GUESS_T;st.guesses=new Set();st.busy=false;
   st.known=Array(L).fill(null);st.known[0]=st.ans[0];
