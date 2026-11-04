@@ -141,22 +141,14 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 <div class="ov" id="start">
   <div class="card">
     <h1>LIN<span>GO</span> Antrenman</h1>
-    <p>İlk harf ve bulduğun yeşil harfler yeni satırda yeşil olarak gösterilir; kelimeyi ilk harfiyle birlikte sen yazarsın. 5 tahmin hakkın var ve her tahmin için 10 saniyen. Sözlükte olmayan bir kelime yazarsan, aynı tahmini tekrar edersen ya da süre dolarsa satır kırmızı olur ve o kelime biter.</p>
-    <div class="legend">
-      <div><span class="t hit mini">A</span> Harf doğru yerde</div>
-      <div><span class="t near mini">A</span> Harf kelimede var, yeri yanlış</div>
-      <div><span class="t miss mini">A</span> Harf kelimede yok</div>
-      <div><span class="t bad mini">A</span> Sözlükte yok ya da süre doldu</div>
-    </div>
-    <p>Her kelimeden sonra anlamı gösterilir. Bildiğin kelimeler bir daha gelmez; bilemediklerin yeni kelimeler bittikten sonra tekrar sorulur. 2. etapta (5-6 harf) kelimeler sırayla sana ve bilgisayara gelir; kelimesi gelen tek oynar, kırmızı olursa ya da 5 hak biterse rakip tek tahminle çalabilir. 3. etapta (5-6 harf) aynı kelimede sırayla tahmin edilir; toplam 5 hak vardır, yanan kalan bütün hakları rakibe bırakır. Kasan her etaba taşınır. Etap sonunda kasası fazla olan finale kalır. 1. etap: 3 tane 4 harfli kelime, bulmaca, 3 tane 5 harfli kelime, bulmaca. 2. etap: 3 tane 5 harfli, bulmaca, 3 tane 6 harfli, bulmaca. Bulmacada uzun kelimenin (1. etapta 8, 2. etapta 9, 3. etapta 10 harf) anlamı verilir. Her saniye bir harf açılır ve açılan her harf ödülü düşürür. Bildiğinde BİLDİM'e bas: süre durur ve cevabını 5 saniyede yazmalısın, yazamazsan yanarsın. Finalde PAS ile aynı uzunlukta yeni kelime alabilirsin. Final 120 saniyedir ve kalan süre 10 saniyenin altına inince yeni tahmine tam süre verilmez: 4 harfli kelime kasanın yarısını, 5 harfli tamamını, 6 harfli iki katını kazandırır; ardından 7 harfli Süper Lingo büyük ödülü ekler.</p>
-    <div class="grp"><span class="lab">Yarışma · programdaki gibi</span>
+    <div class="grp"><span class="lab">Yarışma</span>
       <div class="chips" data-g="len">
         <button class="chip" id="l4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 5-6 harf · bilgisayara karşı, çalma</button>
-        <button class="chip" id="l3" data-v="e3" aria-pressed="false">3. Etap · 5-6 harf · bilgisayarla sırayla tahmin</button>
+        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 5-6 harf</button>
+        <button class="chip" id="l3" data-v="e3" aria-pressed="false">3. Etap · 5-6 harf</button>
         <button class="chip" id="lf" data-v="f" aria-pressed="false">Final · 4-5-6-7</button>
       </div></div>
-    <div class="grp"><span class="lab">Antrenman · tek konuya çalış, istediğin zaman bitir</span>
+    <div class="grp"><span class="lab">Antrenman</span>
       <div class="chips" data-g="len">
         <button class="chip" id="t4" data-v="t4" aria-pressed="false">4 harf</button>
         <button class="chip" id="t5" data-v="t5" aria-pressed="false">5 harf</button>
@@ -165,8 +157,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
         <button class="chip" id="tp" data-v="tp" aria-pressed="false">Bulmaca</button>
       </div></div>
     <button class="go" id="go">BAŞLA</button>
-    <button class="alt" id="wlBtn" type="button">KELİME LİSTESİ · ezber</button>
-    <button class="alt" id="codeBtn" type="button">KODLA YARIŞ · aynı kelimeler</button>
+    <button class="alt" id="wlBtn" type="button">KELİME LİSTESİ</button>
+    <button class="alt" id="codeBtn" type="button">KODLA YARIŞ</button>
     <button class="alt" id="raceBtn" type="button" hidden>ARKADAŞLA CANLI YARIŞ</button>
     <button class="quit" id="reset" type="button"></button>
     <p id="best" style="font-size:13px"></p>
