@@ -146,8 +146,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <h1>LIN<span>GO</span> Antrenman</h1>
     <div class="grp"><span class="lab">Yarışma</span>
       <div class="chips" data-g="len">
-        <button class="chip" id="l4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf</button>
+        <button class="chip" id="l4" data-v="e1" aria-pressed="true">1. Etap · 4 harf</button>
+        <button class="chip" id="l5" data-v="e2" aria-pressed="false">2. Etap · 5 harf</button>
         <button class="chip" id="l3" data-v="e3" aria-pressed="false">3. Etap · 5-6 harf</button>
         <button class="chip" id="lf" data-v="f" aria-pressed="false">Final · 4-5-6-7</button>
       </div></div>
@@ -183,11 +183,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div id="lbRoom" class="grp" style="gap:14px" hidden>
       <div class="pval"><span class="lab">Oda kodu</span><span class="big" id="rCode" style="font-size:34px;letter-spacing:.1em"></span></div>
       <p id="rHint">Bu kodu arkadaşına gönder. O da bu sayfayı açıp ARKADAŞLA YARIŞ'a basar ve kodu girer.</p>
-      <p>1. tur (4-5 harf): kelimeler sırayla birinize gelir, sahibi tek oynar, diğeri izler. 2. tur (4-5 harf): önce biriniz kendi 6 kelimesini (3 tane 4, 3 tane 5 harfli) oynar, sonra diğeri; izleyen, kırmızı olursa ya da 5 hak biterse rakip tek tahminle çalabilir. 3. tur (4 tane 5 ve 4 tane 6 harfli): aynı kelimede sırayla tahmin edilir, toplam 5 hak; yanan kalan bütün hakları rakibe bırakır. Ortak bulmacayı önce bilen alır. Kasalar her tura taşınır; turları sırayla başlatın.</p>
+      <p>1. tur: kelimeler 4 harfli; önce biriniz 3 kelimesini ve 8 harfli bulmacasını oynar, diğeri izler, sonra yer değiştirirsiniz. 2. tur: aynı düzen 5 harfli kelimeler ve 9 harfli bulmacayla; izleyen, kırmızı olursa ya da 5 hak biterse kelimeyi tek tahminle çalabilir. 3. tur (4 tane 5 ve 4 tane 6 harfli): aynı kelimede sırayla tahmin edilir; yanan kalan hakları rakibe bırakır; ortak bulmacayı önce bilen alır. Kasalar her tura taşınır; turları sırayla başlatın.</p>
       <div id="hostOpts" class="grp" style="gap:10px">
         <div class="chips" data-g="rlen">
-          <button class="chip" id="r4" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-          <button class="chip" id="r5" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf · çalma</button>
+          <button class="chip" id="r4" data-v="e1" aria-pressed="true">1. Etap · 4 harf</button>
+          <button class="chip" id="r5" data-v="e2" aria-pressed="false">2. Etap · 5 harf · çalma</button>
           <button class="chip" id="r3" data-v="e3" aria-pressed="false">3. Etap · sırayla tahmin</button>
         </div>
       </div>
@@ -240,8 +240,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <p>Arkadaşınla aynı kodu ve aynı etabı seç: ikinize de aynı kelimeler aynı sırayla gelir. Herkes kendi ekranında oynar, sonunda puanlarınızı karşılaştırırsınız. Claude hesabı gerekmez.</p>
     <div class="grp"><span class="lab">Etap</span>
       <div class="chips" data-g="clen">
-        <button class="chip" id="ce1" data-v="e1" aria-pressed="true">1. Etap · 4-5 harf</button>
-        <button class="chip" id="ce2" data-v="e2" aria-pressed="false">2. Etap · 4-5 harf</button>
+        <button class="chip" id="ce1" data-v="e1" aria-pressed="true">1. Etap · 4 harf</button>
+        <button class="chip" id="ce2" data-v="e2" aria-pressed="false">2. Etap · 5 harf</button>
       </div></div>
     <div class="grp"><span class="lab">Yarış kodu</span>
       <form id="cForm" class="row2"><input class="pin" id="cCode" maxlength="6" autocomplete="off" autocapitalize="characters" aria-label="Yarış kodu"><button class="chip" style="flex:none" type="button" id="cNew">YENİ KOD</button></form></div>
@@ -374,14 +374,16 @@ function start(race,opt){
   if(st.practice){$("kasaLab").textContent="Puan";$("rLab").textContent="Doğru"}
   updScore();
   clearInterval(tick); tick=setInterval(loop,100);
+  st.seq=(st.final||st.practice)?null:stageSeq();st.si=0;st.step=null;
+  if(st.seq){st.target=st.seq.filter(x=>x.t==="w").length;updScore()}
   if(cfg.len==="tp")endStage();else nextWord();
 }
 function updScore(){if(st.bot)botRivals();if(st.race&&!st.over)rp({kasa:st.kasa,done:st.done});$("kasa").textContent=fmt(st.kasa);$("cnt").textContent=st.final?Math.max(0,Math.ceil(st.ft))+" sn":st.practice?st.found.length+"/"+(st.found.length+st.missed.length):st.done+"/"+st.target;scoreBar()}
 
 function nextWord(){
   if(st.over)return;
-  if(!st.final&&!st.practice&&st.done>=grp()*(st.puzN+1)){endStage();return}
-  const L=st.practice?{t4:4,t5:5,t6:6,t7:7}[cfg.len]:st.final?[4,5,6,7][st.level]:(cfg.len==="e2"?((st.done%grp())<3?4:5):cfg.len!=="e3"?(st.done<grp()?4:5):(st.done<grp()?5:6));
+  if(st.seq&&!st.final&&!st.practice){const step=st.seq[st.si];if(!step){finish();return}st.si++;if(step.t==="p"){endStage(step);return}st.step=step}
+  const L=st.practice?{t4:4,t5:5,t6:6,t7:7}[cfg.len]:st.final?[4,5,6,7][st.level]:(st.step?st.step.L:4);
   const pk=(st.race||st.seeded)?rpick(ANS[L],st.used):pick(ANS[L],st.used);st.allDone=pk.all;
   st.ans=pk.w;st.used.add(st.ans);markSeen(st.ans);st.n=L;st.row=0;st.cur="";st.gt=GUESS_T;st.guesses=new Set();st.busy=false;
   st.known=Array(L).fill(null);st.known[0]=st.ans[0];
@@ -498,34 +500,60 @@ function loop(){
 }
 
 /* bulmaca: anlam verilir, her saniye bir harf açılır, her açılan harf ödülü düşürür */
-function endStage(){
+/* tur akışı: her tur adımlardan oluşur (kelime ya da bulmaca); bulmacanın sahibi: 0/1 oyuncu, -1 ortak */
+function stageSeq(){
+  if(cfg.len==="e3"){const w=L=>[...Array(4)].map(()=>({t:"w",L}));return w(5).concat([{t:"p",L:10,o:-1}],w(6),[{t:"p",L:11,o:-1}])}
+  const L1=cfg.len==="e2"?5:4,P1=cfg.len==="e2"?9:8;
+  const one=o=>[{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"p",L:P1,o}];
+  return st.duel?one(0).concat(one(1)):one(0);
+}
+function puzMine(o){if(o==null||o<0||!st.duel)return true;return st.bot?o===0:st.race.order[o%st.race.order.length]===st.race.me}
+function endStage(step){
   st.over=true;clearInterval(tick);
-  const L=st.practice?[8,9,10,11][Math.random()*4|0]:cfg.len==="e3"?(st.puzN===0?10:11):cfg.len==="e2"?9:8;
+  step=step||{};
+  const L=st.practice?[8,9,10,11][Math.random()*4|0]:(step.L||8);
   const pk=(st.race||st.seeded)?rpick(PUZ[L].map(x=>x[0]),st.used):pick(PUZ[L].map(x=>x[0]),st.used);const w=pk.w,def=DEF[w];markSeen(w);st.used.add(w);
   st.p={w,L,order:shuffle([...Array(L).keys()]),shown:new Set(),done:false};
-  $("pLab").textContent=(st.practice?"Bulmaca antrenmanı · "+(st.puzN+1)+". soru":(cfg.len==="e3"&&st.duel?"Ortak bulmaca · ":"")+(st.puzN+1)+". bulmaca kelime")+" · "+L+" harf";
+  st.pzStep=st.si;
+  const shared=!st.practice&&st.duel&&step.o===-1,mine=st.practice||puzMine(step.o);
+  st.p.shared=shared;st.p.watch=!mine;
+  const other=st.bot?BOTN:(st.race&&step.o!=null&&step.o>=0?peerNick(st.race.order[step.o%st.race.order.length]):"Rakip");
+  $("pLab").textContent=st.practice?"Bulmaca antrenmanı · "+(st.puzN+1)+". soru · "+L+" harf":(shared?"Ortak bulmaca":mine?"Senin bulmacan":other+"'ın bulmacası · izliyorsun")+" · "+L+" harf";
   $("pDef").textContent=maskWord(def||"",w);
-  $("pIn").value="";$("pIn").maxLength=L;$("pMsg").textContent="";$("pMsg").className="msg";
-  drawPuz();st.p.buzz=false;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("puz").hidden=false;
-  st.p.shared=cfg.len==="e3"&&st.duel;
-  if(st.p.shared&&st.bot)st.p.botAt=Math.ceil(L*(0.45+Math.random()*0.4));
+  $("pIn").value="";$("pIn").maxLength=L;$("pMsg").textContent=st.p.watch?other+" çözüyor…":"";$("pMsg").className="msg";
+  drawPuz();st.p.buzz=false;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("pGo").hidden=st.p.watch;$("puz").hidden=false;
+  if(st.bot&&(shared||st.p.watch))st.p.botAt=Math.ceil(L*(0.45+Math.random()*0.4));
   puzRun();
 }
 function puzRun(){
   clearInterval(st.pTick);
-  st.pTick=setInterval(()=>{const P=st.p;if(P.done||P.buzz||P.botBuzz)return;P.shown.add(P.order[P.shown.size]);drawPuz();
+  st.pTick=setInterval(()=>{const P=st.p;if(P.done||P.buzz||P.botBuzz)return;
+    if(P.shown.size<P.L){P.shown.add(P.order[P.shown.size]);drawPuz()}
     if(P.botAt&&!P.botTried&&P.shown.size>=P.botAt){botPuzBuzz();return}
-    if(P.shown.size>=P.L)answerPuzzle(true)},1000);
+    if(P.shown.size>=P.L){
+      if(!P.watch){answerPuzzle(true);return}
+      if(st.bot){watchEnd(false,0,BOTN+" bilemedi");return}
+      P.waitT=(P.waitT||0)+1;if(P.waitT>12)watchEnd(false,0,"Rakip bilemedi")}
+  },1000);
 }
-/* 3. tur ortak bulmaca: bilgisayar da BİLDİM'e basabilir */
+/* bilgisayar BİLDİM'e basar: ortak bulmacada yanlışsa bulmaca sende sürer; kendi bulmacasında yanlışsa biter */
 function botPuzBuzz(){
   const P=st.p;if(!P||P.done)return;P.botBuzz=true;P.botTried=true;clearInterval(st.pTick);
   $("pMsg").className="msg lose";$("pMsg").textContent="Bilgisayar BİLDİM'e bastı…";
   setTimeout(()=>{
     if(P.done)return;
-    if(Math.random()<0.7){const v=puzVal();st.botKasa+=v;botRivals();puzLost("Bilgisayar bildi · +"+fmt(v)+" · kelime: "+P.w)}
-    else{P.botBuzz=false;$("pMsg").className="msg win";$("pMsg").textContent="Bilgisayar yanlış cevap verdi · bulmaca sende devam ediyor";puzRun()}
+    const ok=Math.random()<0.7,v=puzVal();
+    if(ok){st.botKasa+=v;botRivals()}
+    if(P.watch){if(!ok&&cfg.len==="e2"){startPuzSteal(P.shown.size);return}watchEnd(ok,v,ok?"Bilgisayar bildi · +"+fmt(v):"Bilgisayar yanlış bildi");return}
+    if(ok){puzLost("Bilgisayar bildi · +"+fmt(v)+" · kelime: "+P.w);return}
+    P.botBuzz=false;$("pMsg").className="msg win";$("pMsg").textContent="Bilgisayar yanlış cevap verdi · bulmaca sende devam ediyor";puzRun();
   },1500+Math.random()*1500);
+}
+function watchEnd(ok,v,msg){
+  const P=st.p;if(!P||P.done)return;
+  P.done=true;clearInterval(st.pTick);P.shown=new Set([...Array(P.L).keys()]);drawPuz(ok?true:"bad");
+  $("pMsg").className="msg "+(ok?"lose":"win");$("pMsg").textContent=msg+" · kelime: "+P.w;
+  puzAfter();
 }
 function puzLost(msg){
   const P=st.p;if(!P||P.done)return;
@@ -536,11 +564,10 @@ function puzLost(msg){
 function puzAfter(){
   updScore();
   st.puzN++;
-  setTimeout(()=>{$("puz").hidden=true;
+  setTimeout(()=>{$("puz").hidden=true;$("pGo").hidden=false;
     if(st.practice){if(!st.over||st.quit)return;endStage();return}
-    if(st.puzN>=2){finish();return}
     st.over=false;st.busy=false;clearInterval(tick);tick=setInterval(loop,100);nextWord();
-  },2000);
+  },2200);
 }
 const puzVal=()=>{const B=(!st.practice&&PUZ_BASE[cfg.len])||PUZ_BASE_L[st.p.L]||2000;return Math.round(B*(st.p.L-st.p.shown.size)/st.p.L/50)*50};
 function drawPuz(win){const P=st.p;$("pScr").innerHTML=[...P.w].map((c,i)=>win?'<span class="'+(win==="bad"?"bad":"win")+'">'+c+"</span>":P.shown.has(i)?'<span class="on">'+c+"</span>":"<span></span>").join("");$("pVal").textContent=win==="bad"?fmt(0):fmt(puzVal())}
@@ -548,20 +575,50 @@ function answerPuzzle(timeout){
   const P=st.p;if(!P||P.done)return;
   const g=up($("pIn").value.trim());
   if(!timeout&&g.length<P.L){$("pMsg").className="msg";$("pMsg").textContent=P.L+" harf yazmalısın";return}
-  P.done=true;clearInterval(st.pTick);clearInterval(st.pBuzzT);$("pTimer").hidden=true;
-  if(!timeout&&g===P.w){const pr=puzVal();markSolved(P.w);st.kasa+=pr;if(P.shared&&st.race)rp({pzw:{g:st.race.epoch,k:st.puzN,v:pr}});st.found.push(P.w);drawPuz(true);$("pMsg").className="msg win";$("pMsg").textContent="Doğru! +"+fmt(pr)}
-  else{st.missed.push(P.w);P.shown=new Set([...Array(P.L).keys()]);drawPuz("bad");$("pMsg").className="msg lose";$("pMsg").textContent=(timeout?(P.buzz?"5 saniyede cevap verilmedi":"Tüm harfler açıldı"):"Yanlış cevap")+" · kelime: "+P.w}
+  clearInterval(st.pTick);clearInterval(st.pBuzzT);$("pTimer").hidden=true;$("pForm").hidden=true;
+  const ok=!timeout&&g===P.w,v=puzVal(),all=()=>new Set([...Array(P.L).keys()]);
+  const say=(t,c)=>{$("pMsg").className="msg "+c;$("pMsg").textContent=t};
+  P.done=true;
+  if(P.isSteal){
+    if(ok){st.kasa+=v;markSolved(P.w);st.found.push(P.w);drawPuz(true);say("Çaldın! +"+fmt(v),"win")}
+    else{P.shown=all();drawPuz("bad");say("Çalamadın · kelime: "+P.w,"lose")}
+    if(st.race)rp({pzs:{g:st.race.epoch,s:st.pzStep,ok:ok?1:0,v:ok?v:0}});
+    puzAfter();return;
+  }
+  if(ok){markSolved(P.w);st.kasa+=v;st.found.push(P.w);drawPuz(true);say("Doğru! +"+fmt(v),"win");
+    if(st.race)rp(P.shared?{pzw:{g:st.race.epoch,k:st.puzN,v}}:{pzr:{g:st.race.epoch,s:st.pzStep,ok:1,v}});
+    puzAfter();return}
+  const reason=timeout?(P.buzz?"5 saniyede cevap verilmedi":"Tüm harfler açıldı"):"Yanlış cevap";
+  st.missed.push(P.w);
+  /* 2. turda bulmacasını bilemeyenin bulmacasını rakip tek cevapla çalabilir */
+  const canSteal=cfg.len==="e2"&&st.duel&&!P.shared&&!st.practice&&P.shown.size<P.L;
+  if(!canSteal){if(!P.shared&&st.race)rp({pzr:{g:st.race.epoch,s:st.pzStep,ok:0,v:0}});P.shown=all();drawPuz("bad");say(reason+" · kelime: "+P.w,"lose");puzAfter();return}
+  drawPuz("bad");P.shown.forEach(()=>{});
+  $("pScr").querySelectorAll("span").forEach((x,i)=>{if(!P.shown.has(i)){x.className="";x.textContent=""}});
+  say(reason+" · rakip çalmaya çalışıyor…","lose");
+  if(st.bot){setTimeout(()=>{const okb=Math.random()<0.6;if(okb){st.botKasa+=v;botRivals()}P.shown=all();drawPuz(okb?true:"bad");
+      say((okb?"Bilgisayar çaldı · +"+fmt(v):"Bilgisayar da bilemedi")+" · kelime: "+P.w,okb?"lose":"win");puzAfter()},2500);return}
+  if(st.race){rp({pzr:{g:st.race.epoch,s:st.pzStep,ok:0,v:0,sh:P.shown.size,st:1}});P.stealWait=true;
+    P.stealT=setTimeout(()=>{if(!P.stealWait)return;P.stealWait=false;P.shown=all();drawPuz("bad");say("Rakip çalamadı · kelime: "+P.w,"win");puzAfter()},15000);return}
   puzAfter();
+}
+/* izlediğim bulmacayı rakip bilemedi: tek cevapla çalma hakkı */
+function startPuzSteal(sh){
+  const P=st.p;if(!P||P.done)return;
+  clearInterval(st.pTick);P.watch=false;P.isSteal=true;P.botBuzz=false;P.buzz=false;
+  P.shown=new Set(P.order.slice(0,Math.min(sh,P.L)));drawPuz();
+  $("pGo").hidden=false;puzBuzz();
+  $("pMsg").className="msg win";$("pMsg").textContent="Çalma hakkı! 5 saniyede cevabını yaz";
 }
 function puzBuzz(){
   const P=st&&st.p;if(!P||P.done||P.buzz)return;
-  if(P.botBuzz)return;P.buzz=true;clearInterval(st.pTick);
+  if(P.botBuzz||P.watch)return;P.buzz=true;clearInterval(st.pTick);
   $("pGo").textContent="CEVAPLA";$("pForm").hidden=false;$("pIn").value="";$("pMsg").className="msg";$("pMsg").textContent="Süre durdu · 5 saniyede cevabını yaz";
   let left=5;$("pTimer").textContent=left;$("pTimer").hidden=false;$("pTimer").classList.add("low");
   try{$("pIn").focus()}catch(e){}
   st.pBuzzT=setInterval(()=>{left--;$("pTimer").textContent=Math.max(0,left);if(left<=0){clearInterval(st.pBuzzT);answerPuzzle(true)}},1000);
 }
-const puzPress=()=>{if(!st||!st.p||st.p.done)return;if(!st.p.buzz)puzBuzz();else answerPuzzle(false)};
+const puzPress=()=>{if(!st||!st.p||st.p.done||st.p.watch)return;if(!st.p.buzz)puzBuzz();else answerPuzzle(false)};
 $("pForm").addEventListener("submit",e=>{e.preventDefault();puzPress()});
 $("pGo").addEventListener("click",puzPress);
 $("pIn").addEventListener("keydown",e=>e.stopPropagation());
@@ -576,7 +633,8 @@ function finish(){
   $("eRace").hidden=!st.race;$("again").textContent=st.race?"ODAYA DÖN":"TEKRAR OYNA";
   if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":cfg.len==="e2"?"2. tur bitti · kasan 3. tura taşınacak":"3. tur bitti · kasası fazla olan finale kalır";
   if(st.bot&&!st.seeded)ls("lingoBotLast",st.botKasa);
-  if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
+  if(!st.race&&!st.practice&&!st.final&&!st.bot&&cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınacak";
+  else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
   if(st.seeded)$("eLab").textContent+=" · Kod "+st.code+" · puanını arkadaşınla karşılaştır";
   $("eKasa").textContent=fmt(st.kasa);$("eFound").textContent=st.found.length;$("eMiss").textContent=st.missed.length;$("eBest").textContent=fmt(best);
   $("eList").innerHTML=(st.found.length?"<b>Bulunanlar:</b> "+st.found.join(", ")+"<br>":"")+(st.missed.length?"<b>Kaçanlar:</b> "+st.missed.join(", "):"");
@@ -689,6 +747,11 @@ function onRoom(ch){
   renderRoom();renderRivals();if(!$("end").hidden&&st&&st.race)renderRace();
   if(st&&st.race&&st.p&&st.p.shared&&!st.p.done){const w=roomPeers().find(p=>!p.sameTab&&p.presence.pzw&&p.presence.pzw.g===st.race.epoch&&p.presence.pzw.k===st.puzN);
     if(w)puzLost(nickOf(w)+" bildi · +"+fmt(+w.presence.pzw.v||0)+" · kelime: "+st.p.w)}
+  if(st&&st.race&&st.p&&st.p.watch&&!st.p.done){const r=roomPeers().find(p=>!p.sameTab&&p.presence.pzr&&p.presence.pzr.g===st.race.epoch&&p.presence.pzr.s===st.pzStep);
+    if(r){const z=r.presence.pzr;if(!z.ok&&z.st&&cfg.len==="e2")startPuzSteal(+z.sh||0);else watchEnd(!!z.ok,+z.v||0,nickOf(r)+(z.ok?" bildi · +"+fmt(+z.v||0):" bilemedi"))}}
+  if(st&&st.race&&st.p&&st.p.stealWait){const r=roomPeers().find(p=>!p.sameTab&&p.presence.pzs&&p.presence.pzs.g===st.race.epoch&&p.presence.pzs.s===st.pzStep);
+    if(r){const z=r.presence.pzs,P=st.p;P.stealWait=false;clearTimeout(P.stealT);P.shown=new Set([...Array(P.L).keys()]);drawPuz(z.ok?true:"bad");
+      $("pMsg").className="msg "+(z.ok?"lose":"win");$("pMsg").textContent=nickOf(r)+(z.ok?" çaldı · +"+fmt(+z.v||0):" çalamadı")+" · kelime: "+P.w;puzAfter()}}
   raceWatch();
   if(amHost)return;
   const h=ch.peers.find(p=>!p.sameTab&&p.presence&&p.presence.host);
@@ -740,7 +803,7 @@ function renderRace(){
 const peerNick=pl=>{const p=RM&&RM.peers().find(x=>x.peer===pl);return p?nickOf(p):"Rakip"};
 /* tur kuralları: e1 kelime sahibinin tek başına; e2 sahibi oynar, kırmızı ya da 5 hak bitince rakip tek tahminle çalar; e3 sırayla tahmin, yanan kalan hakları rakibe bırakır */
 /* 2. tur: önce bir oyuncu kendi 6 kelimesini (3×4, 3×5 harf) oynar, sonra diğeri; izleyen, bilinemeyen kelimeyi çalabilir */
-function ownerIdx(k,n){if(cfg.len!=="e2"||n<2)return k%n;return Math.floor(k/grp())%n}
+function ownerIdx(k,n){if(st.step&&st.step.o!=null&&st.step.o>=0)return st.step.o%n;return k%n}
 function turnPlan(players,k,getRow){
   const n=players.length,mode=cfg.len,own=players[ownerIdx(k,n)],nxt=p=>players[(players.indexOf(p)+1)%n];
   const rows=[];let forced=null,stealBy=null,stealRow=-1,end=false,owner=own;
