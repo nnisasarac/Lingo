@@ -158,7 +158,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
       </div></div>
     <button class="go" id="go">BAŞLA</button>
     <button class="alt" id="wlBtn" type="button">KELİME LİSTESİ</button>
-    <button class="alt" id="codeBtn" type="button">KODLA YARIŞ</button>
+    <button class="alt" id="codeBtn" type="button" hidden>KODLA YARIŞ</button>
     <button class="alt" id="raceBtn" type="button" hidden>ARKADAŞLA CANLI YARIŞ</button>
     <button class="quit" id="reset" type="button"></button>
     <p id="best" style="font-size:13px"></p>
@@ -584,7 +584,7 @@ const nickOf=p=>String((p.presence&&p.presence.nick)||"Oyuncu").slice(0,16);
 try{$("nick").value=localStorage.getItem("lingoNick")||""}catch(e){}
 let roomChecked=false;
 (async()=>{try{if(!window.claude||!claude.use){RM0=peerRoom();$("raceBtn").hidden=false;roomChecked=true;return}$("raceBtn").hidden=false;RM0=await claude.use("room")}catch(e){}roomChecked=true})();
-$("raceBtn").onclick=()=>{$("start").hidden=true;$("lobby").hidden=false;$("lbErr").className="msg lose";$("lbErr").textContent=!RM0?(roomChecked?"Bu hesapta canlı yarış açılamadı. Bunun yerine KODLA YARIŞ ile aynı kelimelerde yarışabilirsiniz.":"Yarış bağlantısı hazırlanıyor, birkaç saniye sonra tekrar dene."):"";if(!RM){$("lbJoin").hidden=false;$("lbRoom").hidden=true}else renderRoom()};
+$("raceBtn").onclick=()=>{$("start").hidden=true;$("lobby").hidden=false;$("lbErr").className="msg lose";$("lbErr").textContent=!RM0?(roomChecked?"Bu hesapta canlı yarış açılamadı.":"Yarış bağlantısı hazırlanıyor, birkaç saniye sonra tekrar dene."):"";if(!RM){$("lbJoin").hidden=false;$("lbRoom").hidden=true}else renderRoom()};
 $("lbBack").onclick=async()=>{
   if(RM){try{await RM.leave()}catch(e){}RM=null;amHost=false;$("lbRoom").hidden=true;$("lbJoin").hidden=false;return}
   $("lobby").hidden=true;$("start").hidden=false;showBest();
@@ -594,7 +594,7 @@ $("mkRoom").onclick=()=>{const A="ABCDEFGHJKLMNPRSTUVYZ23456789";let c="";for(le
 $("jForm").addEventListener("submit",e=>{e.preventDefault();const c=($("code").value||"").trim().toUpperCase();if(!/^[A-Z0-9]{3,6}$/.test(c)){$("lbErr").textContent="Oda kodu 4 harf ya da rakam olmalı";return}enterRoom(c,false)});
 async function enterRoom(code,host){
   $("lbErr").className="msg";$("lbErr").textContent="Odaya bağlanılıyor…";
-  if(!RM0){$("lbErr").className="msg lose";$("lbErr").textContent="Bu hesapta canlı yarış açılamadı. Bunun yerine KODLA YARIŞ ile aynı kelimelerde yarışabilirsiniz.";return}
+  if(!RM0){$("lbErr").className="msg lose";$("lbErr").textContent="Bu hesapta canlı yarış açılamadı.";return}
   try{RM=await RM0.join("lingo-"+code.toLowerCase(),host)}
   catch(e){RM=null;const t=e&&e.type;$("lbErr").className="msg lose";
     $("lbErr").textContent=t==="unavailable-id"?"Bu kod şu an kullanımda. YENİ ODA KUR'a tekrar bas.":t==="peer-unavailable"||(e&&e.message==="timeout")?"Bu kodla açık oda bulunamadı. Kodu kontrol et; arkadaşın odayı kurmuş ve sayfayı açık tutuyor olmalı.":t==="lib"||t==="network"||t==="server-error"||t==="socket-error"?"İnternet bağlantısı kurulamadı. Bağlantını kontrol edip tekrar dene.":"Odaya bağlanılamadı. Tekrar dene.";return}
