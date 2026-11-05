@@ -493,7 +493,7 @@ function submit(timeout){
 }
 function loop(){
   if(!st||st.over||st.paused||!$("puz").hidden)return;
-  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level>=1&&st.level<4){st.halved=true;st.kasa=st.kasa/2;$("kasa").textContent=fmt(st.kasa)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");setTimeout(()=>showCard(false,st.halved?"Final süresi doldu. Risk aldığın için kazancın yarıya indi: "+fmt(st.kasa)+".":"Final süresi doldu. Bu kelime ileride tekrar sorulacak.",finish),700);return}}
+  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level>=1&&st.level<4){st.halved=true;st.kasa=st.kasa/2;$("kasa").textContent=fmt(st.kasa)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;finish();return}}
   if(!st.busy){st.gt-=.1;if(st.final)st.gt=Math.min(st.gt,st.ft);
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
     if(st.gt<=0){st.gt=0;submit(true)}}
