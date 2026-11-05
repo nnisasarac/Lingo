@@ -293,6 +293,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
       <div><span class="lab">Kaçan</span><span class="val" id="eMiss">0</span></div>
       <div><span class="lab">Rekor</span><span class="val kasa" id="eBest">₺0</span></div>
     </div>
+    <div class="grp" id="eAns" hidden><span class="lab">Doğru kelime</span><div class="big" id="eAnsW" style="font-size:32px;letter-spacing:.05em"></div><div class="def" id="eAnsD" style="font-size:15px"></div></div>
     <div id="eRace" hidden></div>
     <div class="list" id="eList"></div>
     <button class="go" id="again">TEKRAR OYNA</button>
@@ -493,7 +494,7 @@ function submit(timeout){
 }
 function loop(){
   if(!st||st.over||st.paused||!$("puz").hidden)return;
-  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;finish();return}}
+  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;st.lastWord=st.ans;finish();return}}
   if(!st.busy){st.gt-=.1;if(st.final)st.gt=Math.min(st.gt,st.ft);
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
     if(st.gt<=0){st.gt=0;submit(true)}}
@@ -650,6 +651,8 @@ function finish(){
       $("again").textContent=(out?"YİNE DE DEVAM ET · ":"")+GONEXT[nx]}
     $("endMenu").hidden=false;
   }
+  $("eAns").hidden=!st.lastWord;
+  if(st.lastWord){$("eAnsW").textContent=st.lastWord;$("eAnsD").textContent=DEF[st.lastWord]||""}
   $("end").hidden=false;
   if(st.race)renderRace();
 }
