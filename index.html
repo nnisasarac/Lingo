@@ -434,8 +434,8 @@ $("fpTake").addEventListener("click",()=>{if(!st||!st.paused)return;$("fp").hidd
 $("fpGo").addEventListener("click",()=>{if(!st||!st.paused)return;if(st.final&&!$("fpTake").hidden)st.risked=true;$("fp").hidden=true;st.paused=false;const f=st.after;st.after=null;if(f)f()});
 const risk=()=>" PARAYI AL dersen "+fmt(st.kasa)+" ile bitirirsin. Devam edip bilemeden süre biterse kazancın sıfırlanır (₺0).";
 function finalInfo(){
-  return st.level===1?"Kasanın yarısını kazandın: "+fmt(st.kasa)+". 5 harfli kelimeyi bulursan kasanın tamamını ("+fmt(st.base)+") kazanırsın."+risk()
-    :st.level===2?"Kasanın tamamını kazandın: "+fmt(st.kasa)+". 6 harfli kelimeyi bulursan kasan iki katına çıkar ("+fmt(st.base*2)+")."+risk()
+  return st.level===1?"Kasanın yarısını kazandın: "+fmt(st.kasa)+". 5 harfli kelimeyi bulursan kasanın tamamını ("+fmt(st.base)+") kazanırsın. Süre biterse bu kazancın kalır."
+    :st.level===2?"Kasanın tamamını kazandın: "+fmt(st.kasa)+". 6 harfli kelimeyi bulursan kasan iki katına çıkar ("+fmt(st.base*2)+"). Süre biterse bu kazancın kalır."
     :st.level===3?"Kasanın iki katını kazandın: "+fmt(st.kasa)+". Sıra 7 harfli Süper Lingo'da: bulursan "+fmt(SUPER)+" eklenir, toplam "+fmt(st.base*2+SUPER)+" olur."+risk()
     :"SÜPER LİNGO! Toplam kazancın "+fmt(st.kasa)+".";
 }
@@ -479,7 +479,7 @@ function submit(timeout){
         st.kasa=st.level<3?st.base*FINAL_MULT[st.level]:st.base*2+SUPER;st.level++;updScore();
         setMsg(st.level===4?"SÜPER LİNGO! Toplam "+fmt(st.kasa):st.level===3?"Kasanın iki katı! Sıra Süper Lingo'da":"Bravo! Kazancın "+fmt(st.kasa),"win");
         markSolved(st.ans);
-        setTimeout(()=>{if(!st.over){showCard(true,finalInfo(),st.level===4?finish:nextWord);if(st.level<4)$("fpTake").hidden=false}},900);
+        setTimeout(()=>{if(!st.over){showCard(true,finalInfo(),st.level===4?finish:nextWord);if(st.level===3)$("fpTake").hidden=false}},900);
         return;
       }
       if(st.duel){st.T.res="won";if(st.race)rp({t:st.T})}
@@ -493,7 +493,7 @@ function submit(timeout){
 }
 function loop(){
   if(!st||st.over||st.paused||!$("puz").hidden)return;
-  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level>=1&&st.level<4){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;finish();return}}
+  if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;finish();return}}
   if(!st.busy){st.gt-=.1;if(st.final)st.gt=Math.min(st.gt,st.ft);
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
     if(st.gt<=0){st.gt=0;submit(true)}}
@@ -638,7 +638,7 @@ function finish(){
   if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":cfg.len==="e2"?"2. tur bitti · kasan 3. tura taşınacak":"3. tur bitti · kasası fazla olan finale kalır";
   if(st.bot&&!st.seeded)ls("lingoBotLast",st.botKasa);
   if(!st.race&&!st.practice&&!st.final&&!st.bot&&cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınacak";
-  else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(cfg.len==="e1"?(st.kasa>=st.botKasa?"1. Etap bitti · öndesin":"1. Etap bitti · Bilgisayar önde"):st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · risk aldığın için kazancın sıfırlandı":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
+  else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(cfg.len==="e1"?(st.kasa>=st.botKasa?"1. Etap bitti · öndesin":"1. Etap bitti · Bilgisayar önde"):st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süper Lingo bilinemedi · kazancın sıfırlandı":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
   if(st.seeded)$("eLab").textContent+=" · Kod "+st.code+" · puanını arkadaşınla karşılaştır";
   $("eKasa").textContent=fmt(st.kasa);$("eFound").textContent=st.found.length;$("eMiss").textContent=st.missed.length;$("eBest").textContent=fmt(best);
   $("eList").innerHTML=(st.found.length?"<b>Bulunanlar:</b> "+st.found.join(", ")+"<br>":"")+(st.missed.length?"<b>Kaçanlar:</b> "+st.missed.join(", "):"");
