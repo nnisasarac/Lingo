@@ -355,7 +355,7 @@ function start(race,opt){
   $("start").hidden=true;
   const fin=cfg.len==="f";
   st={final:fin,base:ls("lingoLast")||15000,used:new Set(),
-      race:race||null,practice:!race&&cfg.len[0]==="t",bot:!race&&(cfg.len==="e2"||cfg.len==="e3"),botKasa:0,rng:race?mulberry(race.seed):(opt&&opt.seed!=null?mulberry(opt.seed):null),seeded:!race&&!!opt,code:opt?opt.code:"",kasa:0,found:[],missed:[],level:0,target:2*(STAGE_G[cfg.len]||3),puzN:0,done:0,ft:FINAL_T,over:false};
+      race:race||null,practice:!race&&cfg.len[0]==="t",bot:!race&&(cfg.len==="e1"||cfg.len==="e2"||cfg.len==="e3"),botKasa:0,rng:race?mulberry(race.seed):(opt&&opt.seed!=null?mulberry(opt.seed):null),seeded:!race&&!!opt,code:opt?opt.code:"",kasa:0,found:[],missed:[],level:0,target:2*(STAGE_G[cfg.len]||3),puzN:0,done:0,ft:FINAL_T,over:false};
   $("kasaLab").textContent=fin?"Final kazancı":"Kasa";
   $("rLab").textContent=fin?"Final süresi":"Kelime";
   $("pas").hidden=!fin;
@@ -363,7 +363,7 @@ function start(race,opt){
   $("rivals").hidden=!st.duel;
   if(race&&cfg.len!=="e1"){st.kasa=raceCarry!=null?raceCarry:ls("lingoRaceCarry")}
   if(!race&&!opt&&!st.practice&&(cfg.len==="e2"||cfg.len==="e3")){st.kasa=ls("lingoLast");
-    st.botKasa=cfg.len==="e3"&&ls("lingoBotLast")?ls("lingoBotLast"):Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100}
+    st.botKasa=ls("lingoBotLast")?ls("lingoBotLast"):Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100}
   if(runNext&&RUN){runNext=false;st.run=true;
     if(cfg.len==="f")st.base=RUN.kasa||15000;
     else if(cfg.len!=="e1"){st.kasa=RUN.kasa;st.botKasa=RUN.bot||Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100;if(!RUN.bot){RUN.bot=st.botKasa;putRun(RUN)}}}
@@ -634,14 +634,14 @@ function finish(){
   if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":cfg.len==="e2"?"2. tur bitti · kasan 3. tura taşınacak":"3. tur bitti · kasası fazla olan finale kalır";
   if(st.bot&&!st.seeded)ls("lingoBotLast",st.botKasa);
   if(!st.race&&!st.practice&&!st.final&&!st.bot&&cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınacak";
-  else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
+  else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(cfg.len==="e1"?(st.kasa>=st.botKasa?"1. Etap bitti · öndesin":"1. Etap bitti · Bilgisayar önde"):st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süre doldu · kazancın yarıya indi":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
   if(st.seeded)$("eLab").textContent+=" · Kod "+st.code+" · puanını arkadaşınla karşılaştır";
   $("eKasa").textContent=fmt(st.kasa);$("eFound").textContent=st.found.length;$("eMiss").textContent=st.missed.length;$("eBest").textContent=fmt(best);
   $("eList").innerHTML=(st.found.length?"<b>Bulunanlar:</b> "+st.found.join(", ")+"<br>":"")+(st.missed.length?"<b>Kaçanlar:</b> "+st.missed.join(", "):"");
   $("exitBtn").hidden=true;
   if(st.run){
     if(st.final){RUN=null;putRun(null);$("eLab").textContent="Yarışma bitti · "+$("eLab").textContent;$("again").textContent="YENİDEN BAŞLA";st.run=false}
-    else{const nx=NEXT[cfg.len],out=st.bot&&st.botKasa>st.kasa;RUN={stage:nx,kasa:st.kasa,bot:st.botKasa};putRun(RUN);
+    else{const nx=NEXT[cfg.len],out=st.bot&&cfg.len!=="e1"&&st.botKasa>st.kasa;RUN={stage:nx,kasa:st.kasa,bot:st.botKasa};putRun(RUN);
       if(cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınıyor";
       $("again").textContent=(out?"YİNE DE DEVAM ET · ":"")+GONEXT[nx]}
     $("endMenu").hidden=false;
@@ -814,7 +814,7 @@ function turnPlan(players,k,getRow){
     if(!r.bad&&rows[i].g===st.ans){end=true;break}
     if(mode==="e1"){if(r.bad||rows.length>=TRIES){end=true;break}}
     else if(mode==="e2"){if(stealBy){end=true;break}if(r.bad||rows.length>=TRIES){if(n>1){stealBy=nxt(own);stealRow=rows.length}else{end=true;break}}}
-    else{if(r.bad&&!forced)forced=nxt(owner);if(rows.length>=TRIES){end=true;break}}
+    else{if(r.bad){if(forced&&owner===forced){end=true;break}if(!forced)forced=nxt(owner)}if(rows.length>=TRIES){end=true;break}}
   }
   const next=end?null:(mode==="e3"?(forced||players[(k+rows.length)%n]):(stealBy||own));
   return {rows,end,next,own,forced,stealBy,stealRow,wi:rows.findIndex(r=>!r.bad&&r.g===st.ans)};
