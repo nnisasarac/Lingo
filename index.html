@@ -528,7 +528,12 @@ function endStage(step){
   $("pIn").value="";$("pIn").maxLength=L;$("pMsg").textContent=st.p.watch?other+" çözüyor…":"";$("pMsg").className="msg";
   drawPuz();st.p.buzz=false;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("pGo").hidden=st.p.watch;$("puz").hidden=false;
   if(st.bot&&(shared||st.p.watch))st.p.botAt=Math.ceil(L*(0.45+Math.random()*0.4));
-  puzRun();
+  /* 3 saniye okuma süresi: harfler sonra açılmaya başlar */
+  const P=st.p,m0=$("pMsg").textContent;let r=3;
+  const say=()=>{$("pMsg").className="msg";$("pMsg").textContent=(m0?m0+" · ":"")+"Harfler "+r+" saniye sonra açılmaya başlıyor"};say();
+  clearInterval(st.pTick);clearInterval(st.pRead);
+  st.pRead=setInterval(()=>{if(st.p!==P||P.done||P.buzz||P.botBuzz){clearInterval(st.pRead);return}
+    r--;if(r>0){say();return}clearInterval(st.pRead);$("pMsg").textContent=m0;puzRun()},1000);
 }
 function puzRun(){
   clearInterval(st.pTick);
@@ -1005,7 +1010,7 @@ function botType(word,k,done){
   const t=setInterval(()=>{if(!st||st.over||st.done!==k){clearInterval(t);return}i++;drawRows(st.T.rows,word.slice(0,i));if(i>=word.length){clearInterval(t);setTimeout(done,350)}},170);
 }
 
-function quitPractice(){if(!st||!st.practice)return;st.quit=true;clearInterval(st.pTick);clearInterval(st.pBuzzT);$("puz").hidden=true;$("fp").hidden=true;st.paused=false;finish()}
+function quitPractice(){if(!st||!st.practice)return;st.quit=true;clearInterval(st.pTick);clearInterval(st.pRead);clearInterval(st.pBuzzT);$("puz").hidden=true;$("fp").hidden=true;st.paused=false;finish()}
 $("quitBtn").addEventListener("click",quitPractice);$("pQuit").addEventListener("click",quitPractice);
 
 /* ---------- kodla yarış: aynı tohum, ayrı ekran ---------- */
