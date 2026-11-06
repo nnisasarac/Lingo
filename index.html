@@ -146,6 +146,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 <div class="ov" id="start">
   <div class="card">
     <h1>LIN<span>GO</span> Antrenman</h1>
+    <div class="grp"><span class="lab">Bilgisayarın zorluğu</span>
+      <div class="chips" data-g="diff">
+        <button class="chip" id="dk" data-v="kolay" aria-pressed="false">Kolay</button>
+        <button class="chip" id="do" data-v="orta" aria-pressed="true">Orta</button>
+        <button class="chip" id="dz" data-v="zor" aria-pressed="false">Zor</button>
+      </div></div>
     <div class="grp"><span class="lab">Yarışma</span>
       <div class="chips" data-g="len">
         <button class="chip" id="l4" data-v="e1" aria-pressed="true">1. Etap · 4 harf</button>
@@ -332,7 +338,7 @@ function stagePrize(i){if(st.practice||st.final)return PRIZE[st.n][Math.min(i,TR
 const FINAL_MULT=[0.5,1,2], SUPER=250000, FINAL_T=120, GUESS_T=10, TRIES=5;
 const LETTERS="ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
 const $=id=>document.getElementById(id);
-let cfg={len:"e1",cnt:"6",rlen:"e1",rcnt:"6",clen:"e1",wlen:"4",wf:"all"}, st=null, tick=null;
+let cfg={diff:"orta",len:"e1",cnt:"6",rlen:"e1",rcnt:"6",clen:"e1",wlen:"4",wf:"all"}, st=null, tick=null;
 const up=s=>s.toLocaleUpperCase("tr-TR");
 const rnd=()=>st&&(st.race||st.seeded)?st.rng():Math.random();
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -527,7 +533,7 @@ function endStage(step){
   $("pDef").textContent=maskWord(def||"",w);
   $("pIn").value="";$("pIn").maxLength=L;$("pMsg").textContent=st.p.watch?other+" çözüyor…":"";$("pMsg").className="msg";
   drawPuz();st.p.buzz=false;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("pGo").hidden=st.p.watch;$("puz").hidden=false;
-  if(st.bot&&(shared||st.p.watch))st.p.botAt=Math.ceil(L*(0.45+Math.random()*0.4));
+  if(st.bot&&(shared||st.p.watch))st.p.botAt=Math.ceil(L*(bd().b0+Math.random()*bd().b1));
   /* 3 saniye okuma süresi: harfler sonra açılmaya başlar */
   const P=st.p,m0=$("pMsg").textContent;let r=3;
   const say=()=>{$("pMsg").className="msg";$("pMsg").textContent=(m0?m0+" · ":"")+"Harfler "+r+" saniye sonra açılmaya başlıyor"};say();
@@ -552,7 +558,7 @@ function botPuzBuzz(){
   $("pMsg").className="msg lose";$("pMsg").textContent="Bilgisayar BİLDİM'e bastı…";
   setTimeout(()=>{
     if(P.done)return;
-    const ok=Math.random()<0.7,v=puzVal();
+    const ok=Math.random()<bd().puz,v=puzVal();
     if(ok){st.botKasa+=v;botRivals()}
     if(P.watch){if(!ok&&cfg.len==="e2"){startPuzSteal(P.shown.size);return}watchEnd(ok,v,ok?"Bilgisayar bildi · +"+fmt(v):"Bilgisayar yanlış bildi");return}
     if(ok){puzLost("Bilgisayar bildi · +"+fmt(v)+" · kelime: "+P.w);return}
@@ -606,7 +612,7 @@ function answerPuzzle(timeout){
   drawPuz("bad");P.shown.forEach(()=>{});
   $("pScr").querySelectorAll("span").forEach((x,i)=>{if(!P.shown.has(i)){x.className="";x.textContent=""}});
   say(reason+" · rakip çalmaya çalışıyor…","lose");
-  if(st.bot){setTimeout(()=>{const okb=Math.random()<0.6;if(okb){st.botKasa+=v;botRivals()}P.shown=all();drawPuz(okb?true:"bad");
+  if(st.bot){setTimeout(()=>{const okb=Math.random()<bd().ps;if(okb){st.botKasa+=v;botRivals()}P.shown=all();drawPuz(okb?true:"bad");
       say((okb?"Bilgisayar çaldı · +"+fmt(v):"Bilgisayar da bilemedi")+" · kelime: "+P.w,okb?"lose":"win");puzAfter()},2500);return}
   if(st.race){rp({pzr:{g:st.race.epoch,s:st.pzStep,ok:0,v:0,sh:P.shown.size,st:1}});P.stealWait=true;
     P.stealT=setTimeout(()=>{if(!P.stealWait)return;P.stealWait=false;P.shown=all();drawPuz("bad");say("Rakip çalamadı · kelime: "+P.w,"win");puzAfter()},15000);return}
@@ -950,6 +956,13 @@ function raceEnd(info,won,lab){
 
 /* ---------- 2. etap: bilgisayara karşı ---------- */
 const BOTN="Bilgisayar";
+/* zorluk: dikkatsiz tahmin, yanma, düşünme süresi, bulmacada basma anı ve isabet */
+const BOTD={kolay:{sloppy:.5,burn:.12,t0:3000,t1:5000,pool:"all",b0:.6,b1:.35,puz:.5,ps:.4},
+  orta:{sloppy:.3,burn:.07,t0:2000,t1:4500,pool:"ans",b0:.45,b1:.4,puz:.7,ps:.6},
+  zor:{sloppy:.1,burn:.02,t0:1500,t1:2500,pool:"ans",b0:.3,b1:.4,puz:.85,ps:.8}};
+const bd=()=>BOTD[cfg.diff]||BOTD.orta;
+try{const d=localStorage.getItem("lingoDiff");if(BOTD[d]){cfg.diff=d;document.querySelectorAll('.chips[data-g="diff"] .chip').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===d))}}catch(e){}
+document.querySelector('.chips[data-g="diff"]').addEventListener("click",()=>setTimeout(()=>{try{localStorage.setItem("lingoDiff",cfg.diff||"orta")}catch(e){}},0));
 function botRivals(){$("rivals").innerHTML='<span class="rv">'+BOTN+' <b>'+fmt(st.botKasa)+'</b></span>';scoreBar()}
 function duelFail(){if(st.race)raceFail()}
 function botSetup(){st.T={rows:[]};st.wEnded=false;botRivals();botSync()}
@@ -975,10 +988,10 @@ function botMove(k,r){
   setTimeout(()=>{
     if(!st||st.over||st.done!==k){clearInterval(cl);return}
     const rows=st.T.rows,steal=st.plan&&st.plan.stealBy==="bot";
-    const g=(!steal&&Math.random()<0.07)?null:botGuess(rows,!steal&&Math.random()<0.3);
+    const g=(!steal&&Math.random()<bd().burn)?null:botGuess(rows,!steal&&Math.random()<bd().sloppy);
     if(!g){clearInterval(cl);rows.push({g:"",bad:true,by:"bot"});botAfter("bot",true);return}
     botType(g,k,()=>{clearInterval(cl);if(st.done!==k||st.over)return;rows.push({g,by:"bot"});botAfter("bot",false)});
-  },2000+Math.random()*4500);
+  },bd().t0+Math.random()*bd().t1);
 }
 function botAfter(by,bad){
   drawRows(st.T.rows,null);
@@ -998,7 +1011,7 @@ function sameRes(a,b){for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;ret
 function botCands(rows){
   const f=st.ans[0],tried=new Set(rows.map(r=>r.g));
   const fit=list=>list.filter(w=>w[0]===f&&!tried.has(w)&&rows.every(r=>r.bad||sameRes(score(r.g,w),score(r.g,st.ans))));
-  const common=fit(ANS[st.n]||[]);return common.length?common:fit([...VALID[st.n]]);
+  if(bd().pool==="all"){const a=fit([...VALID[st.n]]);if(a.length)return a}const common=fit(ANS[st.n]||[]);return common.length?common:fit([...VALID[st.n]]);
 }
 function botGuess(rows,sloppy){
   const c=botCands(rows);
