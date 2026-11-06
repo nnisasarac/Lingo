@@ -48,6 +48,13 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .t.flip{animation:flip .35s ease both}
 @keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
 .row.shake{animation:shake .35s}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+.mood{font-size:64px;line-height:1;text-align:center;animation:moodIn .9s ease-out both}
+.mood small{display:block;font-size:15px;margin-top:6px;color:#ff8b85;font-weight:600}
+@keyframes moodIn{0%{transform:scale(.2) rotate(-20deg);opacity:0}60%{transform:scale(1.15) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.big.sad{color:#ff8b85;animation:sadDrop 1.2s ease-in both}
+@keyframes sadDrop{0%{transform:translateY(-14px);opacity:.3}40%{transform:translateY(4px);opacity:1}55%{transform:translateX(-5px)}70%{transform:translateX(5px)}85%{transform:translateX(-3px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.mood,.big.sad{animation:none}}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .msg{min-height:22px;font-weight:600;text-align:center;font-size:15px}
 .pas{padding:8px 22px;border-radius:999px;border:2px solid var(--near);background:transparent;color:var(--near);font-family:var(--display);font-size:14px;letter-spacing:.04em}
@@ -299,7 +306,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
       <div><span class="lab">Kaçan</span><span class="val" id="eMiss">0</span></div>
       <div><span class="lab">Rekor</span><span class="val kasa" id="eBest">₺0</span></div>
     </div>
-    <div class="grp" id="eAns" hidden><span class="lab">Doğru kelime</span><div class="big" id="eAnsW" style="font-size:32px;letter-spacing:.05em"></div><div class="def" id="eAnsD" style="font-size:15px"></div></div>
+    <div class="mood" id="eMood" hidden></div>
+    <div class="grp" id="eAns" hidden><span class="lab" id="eAnsL">Doğru kelime</span><div class="big" id="eAnsW" style="font-size:32px;letter-spacing:.05em"></div><div class="def" id="eAnsD" style="font-size:15px"></div><div id="eAnsX"></div></div>
     <div id="eRace" hidden></div>
     <div class="list" id="eList"></div>
     <button class="go" id="again">TEKRAR OYNA</button>
@@ -437,7 +445,8 @@ function showCard(won,info,after,lab){
   $("fp").hidden=false;
   setTimeout(()=>{try{$("fpGo").focus()}catch(e){}},50);
 }
-$("fpTake").addEventListener("click",()=>{if(!st||!st.paused)return;$("fp").hidden=true;st.paused=false;st.after=null;st.took=true;finish()});
+$("fpTake").addEventListener("click",()=>{if(!st||!st.paused)return;$("fp").hidden=true;st.paused=false;st.after=null;st.took=true;
+  finish()});
 $("fpGo").addEventListener("click",()=>{if(!st||!st.paused)return;if(st.final&&!$("fpTake").hidden)st.risked=true;$("fp").hidden=true;st.paused=false;const f=st.after;st.after=null;if(f)f()});
 const risk=()=>" PARAYI AL dersen "+fmt(st.kasa)+" ile bitirirsin. Devam edip bilemeden süre biterse kazancın sıfırlanır (₺0).";
 function finalInfo(){
@@ -639,6 +648,24 @@ $("pForm").addEventListener("submit",e=>{e.preventDefault();puzPress()});
 $("pGo").addEventListener("click",puzPress);
 $("pIn").addEventListener("keydown",e=>e.stopPropagation());
 
+/* final sonu efektleri: kazanınca konfeti, sıfırlanınca yağmur */
+function fxCanvas(){let c=$("fx");if(c)c.remove();c=document.createElement("canvas");c.id="fx";document.body.appendChild(c);
+  const d=window.devicePixelRatio||1;c.width=innerWidth*d;c.height=innerHeight*d;const x=c.getContext("2d");x.scale(d,d);return [c,x]}
+function fxRun(c,x,parts,dur,draw){const t0=performance.now();
+  (function fr(t){const e=t-t0;x.clearRect(0,0,innerWidth,innerHeight);parts.forEach(p=>draw(p,e));
+    if(e<dur)requestAnimationFrame(fr);else c.remove()})(t0)}
+function fxConfetti(k){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const [c,x]=fxCanvas(),W=innerWidth,H=innerHeight,col=["#f4c430","#3fb950","#ff6b6b","#58a6ff","#d2a8ff","#ffffff"];
+  const parts=[...Array(Math.round(170*k))].map((_,i)=>({x:i%2?W*.15:W*.85,y:H*.75,vx:(Math.random()-.5)*9+(i%2?3:-3),vy:-(9+Math.random()*9),
+    w:6+Math.random()*6,h:8+Math.random()*8,r:Math.random()*6,vr:(Math.random()-.5)*.35,c:col[i%col.length],d:Math.random()*600*k}));
+  fxRun(c,x,parts,3600*k+800,(p,e)=>{if(e<p.d)return;p.vy+=.28;p.vx*=.985;p.vy=Math.min(p.vy,4.5);p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+    if(p.y>H+20)return;x.save();x.translate(p.x,p.y);x.rotate(p.r);x.fillStyle=p.c;x.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.r*1.7)));x.restore()})
+}catch(e){}}
+function fxRain(){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const [c,x]=fxCanvas(),W=innerWidth,H=innerHeight;
+  const parts=[...Array(90)].map(()=>({x:Math.random()*W,y:-Math.random()*H,v:6+Math.random()*5,l:10+Math.random()*12}));
+  fxRun(c,x,parts,3000,(p,e)=>{p.y+=p.v;if(p.y>H&&e<2000)p.y=-20;x.globalAlpha=Math.max(0,1-e/3000)*.55;x.strokeStyle="#7aa7d8";x.lineWidth=2;x.beginPath();x.moveTo(p.x,p.y);x.lineTo(p.x-2,p.y+p.l);x.stroke()})
+}catch(e){}}
 function finish(){
   clearInterval(tick);st.over=true;
   let best=ls("lingoBest");
@@ -662,9 +689,25 @@ function finish(){
       $("again").textContent=(out?"YİNE DE DEVAM ET · ":"")+GONEXT[nx]}
     $("endMenu").hidden=false;
   }
-  $("eAns").hidden=!st.lastWord;
-  if(st.lastWord){$("eAnsW").textContent=st.lastWord;$("eAnsD").textContent=DEF[st.lastWord]||""}
+  /* finalde oynanamayan basamakların kelimelerini de göster */
+  let rev=[];
+  if(st.final&&st.level<4){
+    const cw=st.lastWord&&!st.found.includes(st.lastWord)?st.lastWord:null;
+    if(cw)rev.push({w:cw,l:cw.length===7?"Süper Lingo kelimesi":cw.length+" harfli · süre dolduğunda sorulan"});
+    for(let lv=cw?st.level+1:st.level;lv<4;lv++){const L=[4,5,6,7][lv];
+      try{const pk=(st.race||st.seeded)?rpick(ANS[L],st.used):pick(ANS[L],st.used);if(pk.w){st.used.add(pk.w);rev.push({w:pk.w,l:L===7?"Kaçırdığın Süper Lingo kelimesi":"Kaçırdığın "+L+" harfli kelime"})}}catch(e){}}
+  }else if(st.lastWord)rev.push({w:st.lastWord,l:"Doğru kelime"});
+  $("eAns").hidden=!rev.length;$("eAnsX").innerHTML="";
+  rev.forEach((r,i)=>{if(!i){$("eAnsL").textContent=r.l;$("eAnsW").textContent=r.w;$("eAnsD").textContent=DEF[r.w]||"";return}
+    const d=document.createElement("div");d.className="grp";d.style.marginTop="12px";
+    [["span","lab",r.l],["div","big",r.w],["div","def",DEF[r.w]||""]].forEach(([t,c,v])=>{const e=document.createElement(t);e.className=c;e.textContent=v;if(c==="big")e.style.cssText="font-size:"+(r.w.length>6?28:32)+"px;letter-spacing:.05em";if(c==="def")e.style.fontSize="15px";d.appendChild(e)});
+    $("eAnsX").appendChild(d)});
   $("end").hidden=false;
+  $("eMood").hidden=true;$("eKasa").classList.remove("sad");
+  if(st.final){
+    if(st.kasa>0)fxConfetti(st.level===4?2.2:1);
+    else{$("eMood").innerHTML="😢<small>"+(st.halved?"Süper Lingo kaçtı, kazanç sıfırlandı":"Bu sefer olmadı")+"</small>";$("eMood").hidden=false;void $("eKasa").offsetWidth;$("eKasa").classList.add("sad");fxRain()}
+  }
   if(st.race)renderRace();
 }
 /* ---------- baştan sona yarışma: etaplar zincirlenir, kasa taşınır, çıkıp devam edilebilir ---------- */
