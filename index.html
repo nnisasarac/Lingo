@@ -294,7 +294,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="def" id="pDef"></div>
     <div class="scr" id="pScr"></div>
     <div class="pval"><span class="lab">Şu anki değeri</span><span class="big" id="pVal" style="font-size:32px">₺0</span></div>
-    <div class="clock" id="pTimer" hidden style="font-size:40px">5</div>
+    <div class="clock" id="pTimer" hidden style="font-size:40px">10</div>
     <form id="pForm"><input class="pin" id="pIn" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" aria-label="Bulmaca cevabı"></form>
     <button class="mic" id="pMic" type="button" hidden>🎤 SESLİ CEVAP</button>
     <button class="go" id="pGo" type="button">CEVAPLA</button>
@@ -556,7 +556,7 @@ function endStage(step){
   step=step||{};
   const L=st.practice?[8,9,10,11][Math.random()*4|0]:(step.L||8);
   const pk=(st.race||st.seeded)?rpick(PUZ[L].map(x=>x[0]),st.used):pick(PUZ[L].map(x=>x[0]),st.used);const w=pk.w,def=DEF[w];markSeen(w);st.used.add(w);
-  st.p={w,L,order:shuffle([...Array(L).keys()]),shown:new Set(),done:false};
+  st.p={w,L,order:[0].concat(shuffle([...Array(L).keys()].slice(1))),shown:new Set([0]),done:false}; /* ilk harf her zaman açık */
   st.pzStep=st.si;
   const shared=!st.practice&&st.duel&&step.o===-1,mine=st.practice||puzMine(step.o);
   st.p.shared=shared;st.p.watch=!mine;
@@ -617,7 +617,7 @@ function puzAfter(){
     st.over=false;st.busy=false;clearInterval(tick);tick=setInterval(loop,100);nextWord();
   },2200);
 }
-const puzVal=()=>{const B=(!st.practice&&PUZ_BASE[cfg.len])||PUZ_BASE_L[st.p.L]||2000;return Math.round(B*(st.p.L-st.p.shown.size)/st.p.L/50)*50};
+const puzVal=()=>{const B=(!st.practice&&PUZ_BASE[cfg.len])||PUZ_BASE_L[st.p.L]||2000;return Math.round(B*(st.p.L-st.p.shown.size)/(st.p.L-1)/50)*50};
 function drawPuz(win){const P=st.p;$("pScr").innerHTML=[...P.w].map((c,i)=>win?'<span class="'+(win==="bad"?"bad":"win")+'">'+c+"</span>":P.shown.has(i)?'<span class="on">'+c+"</span>":"<span></span>").join("");$("pVal").textContent=win==="bad"?fmt(0):fmt(puzVal())}
 function answerPuzzle(timeout){
   const P=st.p;if(!P||P.done)return;
@@ -636,8 +636,14 @@ function answerPuzzle(timeout){
   if(ok){markSolved(P.w);st.kasa+=v;st.found.push(P.w);drawPuz(true);say("Doğru! +"+fmt(v),"win");
     if(st.race)rp(P.shared?{pzw:{g:st.race.epoch,k:st.puzN,v}}:{pzr:{g:st.race.epoch,s:st.pzStep,ok:1,v}});
     puzAfter();return}
-  const reason=timeout?(P.buzz?"5 saniyede cevap verilmedi":"Tüm harfler açıldı"):"Yanlış cevap";
+  const reason=timeout?(P.buzz?"10 saniyede cevap verilmedi":"Tüm harfler açıldı"):"Yanlış cevap";
   st.missed.push(P.w);
+  /* ortak bulmaca: yanlış bilen çıkar, rakip açılan harflerden ve kalan süreden devam eder */
+  if(P.shared&&!st.practice&&P.buzz&&P.shown.size<P.L&&(st.race||(st.bot&&!P.botTried))){
+    P.done=false;P.buzz=false;P.watch=true;$("pGo").hidden=true;
+    if(st.bot)P.botAt=Math.max(P.shown.size+1,Math.min(P.botAt||P.L,P.L));
+    say(reason+" · sıra rakipte, harfler açılmaya devam ediyor","lose");
+    puzRun();return}
   /* 2. turda bulmacasını bilemeyenin bulmacasını rakip tek cevapla çalabilir */
   const canSteal=cfg.len==="e2"&&st.duel&&!P.shared&&!st.practice&&P.shown.size<P.L;
   if(!canSteal){if(!P.shared&&st.race)rp({pzr:{g:st.race.epoch,s:st.pzStep,ok:0,v:0}});P.shown=all();drawPuz("bad");say(reason+" · kelime: "+P.w,"lose");puzAfter();return}
@@ -656,13 +662,13 @@ function startPuzSteal(sh){
   clearInterval(st.pTick);P.watch=false;P.isSteal=true;P.botBuzz=false;P.buzz=false;
   P.shown=new Set(P.order.slice(0,Math.min(sh,P.L)));drawPuz();
   $("pGo").hidden=false;puzBuzz();
-  $("pMsg").className="msg win";$("pMsg").textContent="Çalma hakkı! 5 saniyede cevabını yaz";
+  $("pMsg").className="msg win";$("pMsg").textContent="Çalma hakkı! 10 saniyede cevabını yaz";
 }
 function puzBuzz(){
   const P=st&&st.p;if(!P||P.done||P.buzz)return;
   if(P.botBuzz||P.watch)return;P.buzz=true;clearInterval(st.pTick);
-  $("pGo").textContent="CEVAPLA";$("pForm").hidden=false;$("pIn").value="";$("pMsg").className="msg";$("pMsg").textContent="Süre durdu · 5 saniyede cevabını yaz";
-  let left=5;$("pTimer").textContent=left;$("pTimer").hidden=false;$("pTimer").classList.add("low");
+  $("pGo").textContent="CEVAPLA";$("pForm").hidden=false;$("pIn").value="";$("pMsg").className="msg";$("pMsg").textContent="Süre durdu · 10 saniyede cevabını yaz";
+  let left=10;$("pTimer").textContent=left;$("pTimer").hidden=false;$("pTimer").classList.add("low");
   if(cfg.voice==="1")$("pMic").hidden=false;else try{$("pIn").focus()}catch(e){}
   st.pBuzzT=setInterval(()=>{if(st.voice)return;left--;$("pTimer").textContent=Math.max(0,left);if(left<=0){clearInterval(st.pBuzzT);answerPuzzle(true)}},1000);
 }
