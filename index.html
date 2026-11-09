@@ -530,11 +530,13 @@ function submit(timeout){
 function loop(){
   if(!st||st.over||st.paused||st.voice||!$("puz").hidden)return;
   if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;st.lastWord=st.ans;finish();return}}
-  if(!st.busy){st.gt-=.1;if(st.final)st.gt=Math.min(st.gt,st.ft);
+  if(!st.busy&&!st.final){st.gt-=.1;
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
     if(st.gt<=0){st.gt=0;submit(true)}}
   if(st.race&&st.role==="watch"&&Date.now()-st.lastChange>30000){const r=raceRows().length;st.ghost[r]={i:r,g:"",bad:true};st.lastChange=Date.now();raceSync()}
   if(st.duel&&st.role!=="active"&&st.role!=="steal")return;
+  if(st.final){$("clock").textContent=Math.max(0,Math.ceil(st.ft));$("clock").classList.toggle("low",st.ft<=10);
+    $("gfill").style.width=Math.max(0,st.ft/FINAL_T*100)+"%";$("gbar").classList.toggle("low",st.ft<=10);return}
   $("clock").textContent=Math.ceil(st.gt);$("clock").classList.toggle("low",st.gt<=3);
   $("gfill").style.width=Math.max(0,st.gt/GUESS_T*100)+"%";$("gbar").classList.toggle("low",st.gt<=3);
 }
