@@ -160,7 +160,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="lab" id="voLab">Süre durdu · kelimeyi söyle</div>
     <input class="pin" id="vIn" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" aria-label="Söylediğin kelime">
     <div class="msg" id="voMsg"></div>
-    <div class="row2"><button class="quit" id="voAgain" type="button">Tekrar dinle</button><button class="go" id="voOk" type="button" style="flex:1">YAZ · <span id="voT">10</span></button></div>
+    <div class="row2"><button class="quit" id="voAgain" type="button">Tekrar dinle</button><button class="go" id="voOk" type="button" style="flex:1">YAZ · <span id="voT">5</span></button></div>
   </div>
 </div>
 
@@ -688,7 +688,7 @@ function fxRain(){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)
 }catch(e){}}
 /* ---- sesli tahmin: süre durur, söylenen kelime yazılır, süre devam eder ---- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let VO=null;
+let VO=null;const VOT=5;
 const voNorm=t=>up(String(t||"")).replace(/Â/g,"A").replace(/Î/g,"İ").replace(/Û/g,"U").replace(/[^A-ZÇĞİÖŞÜ]/g,"");
 function voCanRow(){return st&&!st.busy&&!st.over&&$("end").hidden&&$("puz").hidden&&$("fp").hidden&&$("start").hidden}
 function voStart(kind){
@@ -696,10 +696,10 @@ function voStart(kind){
   if(kind==="row"&&!voCanRow())return;
   if(kind==="puz"&&!(st.p&&st.p.buzz&&!st.p.done))return;
   const L=kind==="puz"?st.p.L:st.n;
-  st.voice=true;VO={kind,L,left:10,rec:null};
-  $("vIn").value="";$("vIn").maxLength=L+4;$("voMsg").textContent="";$("voMsg").className="msg";
-  $("voLab").textContent="Süre durdu · "+L+" harfli kelimeyi söyle";$("voT").textContent=10;$("vo").hidden=false;
-  VO.tick=setInterval(()=>{if(!VO)return;VO.left--;$("voT").textContent=Math.max(0,VO.left);if(VO.left<=0)voDone()},1000);
+  st.voice=true;VO={kind,L,left:VOT,rec:null,step:"word",said:""};
+  $("vIn").value="";$("vIn").maxLength=60;$("voMsg").textContent="";$("voMsg").className="msg";
+  $("voLab").textContent="Süre durdu · "+L+" harfli kelimeyi söyle";$("voT").textContent=VOT;$("vo").hidden=false;$("voOk").firstChild.textContent=kind==="row"?"KODLA · ":"YAZ · ";
+  VO.tick=setInterval(()=>{if(!VO)return;VO.left--;$("voT").textContent=Math.max(0,VO.left);if(VO.left<=0)voOk()},1000);
   voListen();
 }
 function voListen(){
@@ -707,23 +707,43 @@ function voListen(){
   if(!SR){$("voMsg").textContent="Bu tarayıcı sesi kendisi tanıyamıyor: kutuya dokunup klavyedeki mikrofonla söyle.";try{$("vIn").focus()}catch(e){}return}
   try{if(VO.rec)VO.rec.abort()}catch(e){}
   const r=new SR();VO.rec=r;r.lang="tr-TR";r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
-  $("voLab").textContent="Dinliyorum… · "+VO.L+" harfli";
+  $("voLab").textContent=VO.step==="code"?"Dinliyorum… harfleri tek tek söyle":"Dinliyorum… · "+VO.L+" harfli kelime";
   r.onresult=ev=>{if(!VO||VO.rec!==r)return;const res=ev.results[ev.results.length-1];
+    if(VO.step==="code"){const alts=[...res].map(a=>voSpell(a.transcript)).filter(Boolean);
+      const pick=alts.find(a=>a.length===VO.L)||alts[0]||"";$("vIn").value=pick;
+      if(res.isFinal){if(pick.length===VO.L)setTimeout(()=>{if(VO&&VO.rec===r)voDone()},600);
+        else{$("voMsg").textContent="Kodladığın: "+(pick.split("").join("-")||"—")+" ("+pick.length+" harf). Tekrar dinle ya da düzelt.";$("voMsg").className="msg lose"}}
+      return}
     const alts=[...res].map(a=>voNorm(a.transcript)).filter(Boolean);
     const val=VO.kind==="puz"?null:VALID[VO.L];
     const pick=alts.find(a=>a.length===VO.L&&(!val||val.has(a)))||alts.find(a=>a.length===VO.L)||alts[0]||"";
     $("vIn").value=pick;
-    if(res.isFinal){if(pick.length===VO.L)setTimeout(()=>{if(VO&&VO.rec===r)voDone()},500);
+    if(res.isFinal){if(pick.length===VO.L)setTimeout(()=>{if(VO&&VO.rec===r)voOk()},500);
       else{$("voMsg").textContent="Duyduğum: "+(pick||"—")+" ("+pick.length+" harf). Tekrar dinle ya da düzelt.";$("voMsg").className="msg lose"}}};
   r.onerror=ev=>{if(!VO||VO.rec!==r)return;
     $("voMsg").textContent=ev.error==="not-allowed"||ev.error==="service-not-allowed"?"Mikrofon izni yok: kutuya dokunup klavyedeki mikrofonla söyleyebilirsin.":ev.error==="no-speech"?"Ses duyamadım, tekrar dinle.":"Ses tanınamadı ("+ev.error+").";
     $("voMsg").className="msg lose";$("voLab").textContent="Süre durdu · "+VO.L+" harfli"};
-  r.onend=()=>{if(VO&&VO.rec===r)$("voLab").textContent="Süre durdu · "+VO.L+" harfli"};
+  r.onend=()=>{if(VO&&VO.rec===r)$("voLab").textContent=VO.step==="code"?"Süre durdu · harf harf kodla":"Süre durdu · "+VO.L+" harfli"};
   try{r.start()}catch(e){$("voMsg").textContent="Mikrofon başlatılamadı."}
 }
+/* harf harf kodlama: "le i me o ne", "l i m o n" → LİMON */
+const VOL={A:"A",BE:"B",Bİ:"B",CE:"C",Cİ:"C",ÇE:"Ç",DE:"D",Dİ:"D",E:"E",FE:"F",GE:"G",HE:"H",HA:"H",I:"I",İ:"İ",JE:"J",KE:"K",KA:"K",LE:"L",ME:"M",NE:"N",O:"O",Ö:"Ö",PE:"P",Pİ:"P",RE:"R",SE:"S",ŞE:"Ş",TE:"T",Tİ:"T",U:"U",Ü:"Ü",VE:"V",YE:"Y",ZE:"Z"};
+function voSpell(t){
+  const tk=up(String(t||"")).replace(/Â/g,"A").replace(/Î/g,"İ").replace(/Û/g,"U").split(/[^A-ZÇĞİÖŞÜ]+/).filter(Boolean);
+  let o="";
+  for(let i=0;i<tk.length;i++){const x=tk[i];
+    if(x==="YUMUŞAK"&&tk[i+1]&&/^G/.test(tk[i+1])){o+="Ğ";i++;continue}
+    if(VOL[x])o+=VOL[x];else o+=x}
+  return o}
+function voCode(){
+  if(!VO)return;VO.said=voNorm($("vIn").value);VO.step="code";VO.left=VOT;$("voT").textContent=VOT;
+  $("vIn").value="";$("voOk").firstChild.textContent="YAZ · ";
+  $("voMsg").className="msg";$("voMsg").textContent=(VO.said?"Söylediğin: "+VO.said+" · ":"")+"şimdi harfleri tek tek söyle (ör. L-İ-M-O-N)";
+  $("voLab").textContent="Süre durdu · harf harf kodla";voListen()}
+function voOk(){if(VO&&VO.kind==="row"&&VO.step==="word")voCode();else voDone()}
 function voDone(){
   if(!VO)return;const v=VO;VO=null;clearInterval(v.tick);try{if(v.rec)v.rec.abort()}catch(e){}
-  $("vo").hidden=true;const w=voNorm($("vIn").value);
+  $("vo").hidden=true;const w=v.step==="code"?voSpell($("vIn").value):voNorm($("vIn").value);
   if(st){
     if(v.kind==="puz"){$("pIn").value=w.slice(0,v.L)}
     else if(voCanRow()){st.cur=w.slice(0,st.n);paint();if(w&&w.length!==st.n)setMsg("Duyduğum: "+w+" · "+st.n+" harf olmalı","lose")}
@@ -732,10 +752,10 @@ function voDone(){
 }
 $("micBtn").addEventListener("click",()=>voStart("row"));
 $("pMic").addEventListener("click",()=>voStart("puz"));
-$("voOk").addEventListener("click",voDone);
-$("voAgain").addEventListener("click",()=>{if(VO){VO.left=10;$("voT").textContent=10;$("vIn").value="";$("voMsg").textContent="";voListen()}});
+$("voOk").addEventListener("click",voOk);
+$("voAgain").addEventListener("click",()=>{if(VO){VO.left=VOT;$("voT").textContent=VOT;$("vIn").value="";$("voMsg").textContent="";voListen()}});
 $("vIn").addEventListener("keydown",e=>e.stopPropagation());
-$("vIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();voDone()}});
+$("vIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();voOk()}});
 function voShow(){$("micBtn").hidden=cfg.voice!=="1"}
 try{const v=localStorage.getItem("lingoVoice");if(v==="1"||v==="0"){cfg.voice=v;document.querySelectorAll('.chips[data-g="voice"] .chip').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}}catch(e){}
 document.querySelector('.chips[data-g="voice"]').addEventListener("click",()=>setTimeout(()=>{voShow();try{localStorage.setItem("lingoVoice",cfg.voice||"0")}catch(e){}},0));
@@ -1201,7 +1221,7 @@ $("fcShow").onclick=()=>{if(!fcCur)return;$("fcA").textContent=fcCur;$("fcShow")
 $("fcYes").onclick=()=>{if(fcCur){SOLVED.add(fcCur);putSet("lingoSolved",SOLVED)}fcNext()};
 $("fcNo").onclick=()=>{if(fcCur){SOLVED.delete(fcCur);putSet("lingoSolved",SOLVED)}fcNext()};
 document.addEventListener("keydown",e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;
-  if(!$("vo").hidden){if(e.key==="Enter"){e.preventDefault();voDone()}else if(e.key==="Escape")voDone();return}
+  if(!$("vo").hidden){if(e.key==="Enter"){e.preventDefault();voOk()}else if(e.key==="Escape")voDone();return}
   if(e.target&&e.target.tagName==="INPUT")return;
   if(e.key===" "&&cfg.voice==="1"&&st&&!st.over&&$("fp").hidden){e.preventDefault();if(!$("puz").hidden){if(!$("pMic").hidden)voStart("puz")}else voStart("row");return}
   if(!$("wlOv").hidden){if(e.key==="Enter"||e.key===" "){e.preventDefault();if(!$("fc").hidden){if(!$("fcShow").hidden)$("fcShow").click()}}return}
