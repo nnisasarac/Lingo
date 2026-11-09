@@ -57,6 +57,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 @media (prefers-reduced-motion:reduce){.mood,.big.sad{animation:none}}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .msg{min-height:22px;font-weight:600;text-align:center;font-size:15px}
+.mic{align-self:center;padding:10px 26px;border-radius:999px;border:2px solid var(--near);background:var(--near);color:var(--bg);font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:2px 0 6px}
+.vmic{font-size:52px;text-align:center;animation:vp 1.2s ease-in-out infinite}
+@keyframes vp{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.vmic{animation:none}}
 .pas{padding:8px 22px;border-radius:999px;border:2px solid var(--near);background:transparent;color:var(--near);font-family:var(--display);font-size:14px;letter-spacing:.04em}
 .pas:active{background:var(--near);color:var(--tileInk)}
 .msg.win{color:var(--gold)} .msg.lose{color:#ff8b85}
@@ -147,12 +151,27 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <button class="quit" id="quitBtn" type="button" hidden style="align-self:center">Antrenmanı bitir</button>
     <button class="quit" id="exitBtn" type="button" hidden style="align-self:center">Menüye dön</button>
   </div>
+  <button class="mic" id="micBtn" type="button" hidden>🎤 SESLİ TAHMİN</button>
   <div class="kb" id="kb"></div>
+</div>
+<div class="ov" id="vo" hidden>
+  <div class="card">
+    <div class="vmic" aria-hidden="true">🎤</div>
+    <div class="lab" id="voLab">Süre durdu · kelimeyi söyle</div>
+    <input class="pin" id="vIn" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" aria-label="Söylediğin kelime">
+    <div class="msg" id="voMsg"></div>
+    <div class="row2"><button class="quit" id="voAgain" type="button">Tekrar dinle</button><button class="go" id="voOk" type="button" style="flex:1">YAZ · <span id="voT">10</span></button></div>
+  </div>
 </div>
 
 <div class="ov" id="start">
   <div class="card">
     <h1>LIN<span>GO</span> Antrenman</h1>
+    <div class="grp"><span class="lab">Tahmin yöntemi</span>
+      <div class="chips" data-g="voice">
+        <button class="chip" id="vK" data-v="0" aria-pressed="true">Klavye</button>
+        <button class="chip" id="vS" data-v="1" aria-pressed="false">Sesli</button>
+      </div></div>
     <div class="grp"><span class="lab">Bilgisayarın zorluğu</span>
       <div class="chips" data-g="diff">
         <button class="chip" id="dk" data-v="kolay" aria-pressed="false">Kolay</button>
@@ -277,6 +296,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
     <div class="pval"><span class="lab">Şu anki değeri</span><span class="big" id="pVal" style="font-size:32px">₺0</span></div>
     <div class="clock" id="pTimer" hidden style="font-size:40px">5</div>
     <form id="pForm"><input class="pin" id="pIn" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="characters" aria-label="Bulmaca cevabı"></form>
+    <button class="mic" id="pMic" type="button" hidden>🎤 SESLİ CEVAP</button>
     <button class="go" id="pGo" type="button">CEVAPLA</button>
     <button class="quit" id="pQuit" type="button" hidden>Antrenmanı bitir</button>
     <div class="msg" id="pMsg" aria-live="polite"></div>
@@ -346,7 +366,7 @@ function stagePrize(i){if(st.practice||st.final)return PRIZE[st.n][Math.min(i,TR
 const FINAL_MULT=[0.5,1,2], SUPER=250000, FINAL_T=120, GUESS_T=10, TRIES=5;
 const LETTERS="ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
 const $=id=>document.getElementById(id);
-let cfg={diff:"orta",len:"e1",cnt:"6",rlen:"e1",rcnt:"6",clen:"e1",wlen:"4",wf:"all"}, st=null, tick=null;
+let cfg={voice:"0",diff:"orta",len:"e1",cnt:"6",rlen:"e1",rcnt:"6",clen:"e1",wlen:"4",wf:"all"}, st=null, tick=null;
 const up=s=>s.toLocaleUpperCase("tr-TR");
 const rnd=()=>st&&(st.race||st.seeded)?st.rng():Math.random();
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
@@ -508,7 +528,7 @@ function submit(timeout){
   },st.n*80+300);
 }
 function loop(){
-  if(!st||st.over||st.paused||!$("puz").hidden)return;
+  if(!st||st.over||st.paused||st.voice||!$("puz").hidden)return;
   if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;st.lastWord=st.ans;finish();return}}
   if(!st.busy){st.gt-=.1;if(st.final)st.gt=Math.min(st.gt,st.ft);
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
@@ -541,7 +561,7 @@ function endStage(step){
   $("pLab").textContent=st.practice?"Bulmaca antrenmanı · "+(st.puzN+1)+". soru · "+L+" harf":(shared?"Ortak bulmaca":mine?"Senin bulmacan":other+"'ın bulmacası · izliyorsun")+" · "+L+" harf";
   $("pDef").textContent=maskWord(CLUE[w]||def||"",w);
   $("pIn").value="";$("pIn").maxLength=L;$("pMsg").textContent=st.p.watch?other+" çözüyor…":"";$("pMsg").className="msg";
-  drawPuz();st.p.buzz=false;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("pGo").hidden=st.p.watch;$("puz").hidden=false;
+  drawPuz();st.p.buzz=false;$("pMic").hidden=true;$("pForm").hidden=true;$("pTimer").hidden=true;$("pGo").textContent="BİLDİM!";$("pGo").hidden=st.p.watch;$("puz").hidden=false;
   if(st.bot&&(shared||st.p.watch))st.p.botAt=Math.ceil(L*(bd().b0+Math.random()*bd().b1));
   /* 3 saniye okuma süresi: harfler sonra açılmaya başlar */
   const P=st.p,m0=$("pMsg").textContent;let r=3;
@@ -600,7 +620,7 @@ function answerPuzzle(timeout){
   const P=st.p;if(!P||P.done)return;
   const g=up($("pIn").value.trim());
   if(!timeout&&g.length<P.L){$("pMsg").className="msg";$("pMsg").textContent=P.L+" harf yazmalısın";return}
-  clearInterval(st.pTick);clearInterval(st.pBuzzT);$("pTimer").hidden=true;$("pForm").hidden=true;
+  clearInterval(st.pTick);clearInterval(st.pBuzzT);$("pTimer").hidden=true;$("pMic").hidden=true;$("pForm").hidden=true;
   const ok=!timeout&&g===P.w,v=puzVal(),all=()=>new Set([...Array(P.L).keys()]);
   const say=(t,c)=>{$("pMsg").className="msg "+c;$("pMsg").textContent=t};
   P.done=true;
@@ -640,8 +660,8 @@ function puzBuzz(){
   if(P.botBuzz||P.watch)return;P.buzz=true;clearInterval(st.pTick);
   $("pGo").textContent="CEVAPLA";$("pForm").hidden=false;$("pIn").value="";$("pMsg").className="msg";$("pMsg").textContent="Süre durdu · 5 saniyede cevabını yaz";
   let left=5;$("pTimer").textContent=left;$("pTimer").hidden=false;$("pTimer").classList.add("low");
-  try{$("pIn").focus()}catch(e){}
-  st.pBuzzT=setInterval(()=>{left--;$("pTimer").textContent=Math.max(0,left);if(left<=0){clearInterval(st.pBuzzT);answerPuzzle(true)}},1000);
+  if(cfg.voice==="1")$("pMic").hidden=false;else try{$("pIn").focus()}catch(e){}
+  st.pBuzzT=setInterval(()=>{if(st.voice)return;left--;$("pTimer").textContent=Math.max(0,left);if(left<=0){clearInterval(st.pBuzzT);answerPuzzle(true)}},1000);
 }
 const puzPress=()=>{if(!st||!st.p||st.p.done||st.p.watch)return;if(!st.p.buzz)puzBuzz();else answerPuzzle(false)};
 $("pForm").addEventListener("submit",e=>{e.preventDefault();puzPress()});
@@ -666,6 +686,60 @@ function fxRain(){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)
   const parts=[...Array(90)].map(()=>({x:Math.random()*W,y:-Math.random()*H,v:6+Math.random()*5,l:10+Math.random()*12}));
   fxRun(c,x,parts,3000,(p,e)=>{p.y+=p.v;if(p.y>H&&e<2000)p.y=-20;x.globalAlpha=Math.max(0,1-e/3000)*.55;x.strokeStyle="#7aa7d8";x.lineWidth=2;x.beginPath();x.moveTo(p.x,p.y);x.lineTo(p.x-2,p.y+p.l);x.stroke()})
 }catch(e){}}
+/* ---- sesli tahmin: süre durur, söylenen kelime yazılır, süre devam eder ---- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let VO=null;
+const voNorm=t=>up(String(t||"")).replace(/Â/g,"A").replace(/Î/g,"İ").replace(/Û/g,"U").replace(/[^A-ZÇĞİÖŞÜ]/g,"");
+function voCanRow(){return st&&!st.busy&&!st.over&&$("end").hidden&&$("puz").hidden&&$("fp").hidden&&$("start").hidden}
+function voStart(kind){
+  if(!st||VO)return;
+  if(kind==="row"&&!voCanRow())return;
+  if(kind==="puz"&&!(st.p&&st.p.buzz&&!st.p.done))return;
+  const L=kind==="puz"?st.p.L:st.n;
+  st.voice=true;VO={kind,L,left:10,rec:null};
+  $("vIn").value="";$("vIn").maxLength=L+4;$("voMsg").textContent="";$("voMsg").className="msg";
+  $("voLab").textContent="Süre durdu · "+L+" harfli kelimeyi söyle";$("voT").textContent=10;$("vo").hidden=false;
+  VO.tick=setInterval(()=>{if(!VO)return;VO.left--;$("voT").textContent=Math.max(0,VO.left);if(VO.left<=0)voDone()},1000);
+  voListen();
+}
+function voListen(){
+  if(!VO)return;
+  if(!SR){$("voMsg").textContent="Bu tarayıcı sesi kendisi tanıyamıyor: kutuya dokunup klavyedeki mikrofonla söyle.";try{$("vIn").focus()}catch(e){}return}
+  try{if(VO.rec)VO.rec.abort()}catch(e){}
+  const r=new SR();VO.rec=r;r.lang="tr-TR";r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
+  $("voLab").textContent="Dinliyorum… · "+VO.L+" harfli";
+  r.onresult=ev=>{if(!VO||VO.rec!==r)return;const res=ev.results[ev.results.length-1];
+    const alts=[...res].map(a=>voNorm(a.transcript)).filter(Boolean);
+    const val=VO.kind==="puz"?null:VALID[VO.L];
+    const pick=alts.find(a=>a.length===VO.L&&(!val||val.has(a)))||alts.find(a=>a.length===VO.L)||alts[0]||"";
+    $("vIn").value=pick;
+    if(res.isFinal){if(pick.length===VO.L)setTimeout(()=>{if(VO&&VO.rec===r)voDone()},500);
+      else{$("voMsg").textContent="Duyduğum: "+(pick||"—")+" ("+pick.length+" harf). Tekrar dinle ya da düzelt.";$("voMsg").className="msg lose"}}};
+  r.onerror=ev=>{if(!VO||VO.rec!==r)return;
+    $("voMsg").textContent=ev.error==="not-allowed"||ev.error==="service-not-allowed"?"Mikrofon izni yok: kutuya dokunup klavyedeki mikrofonla söyleyebilirsin.":ev.error==="no-speech"?"Ses duyamadım, tekrar dinle.":"Ses tanınamadı ("+ev.error+").";
+    $("voMsg").className="msg lose";$("voLab").textContent="Süre durdu · "+VO.L+" harfli"};
+  r.onend=()=>{if(VO&&VO.rec===r)$("voLab").textContent="Süre durdu · "+VO.L+" harfli"};
+  try{r.start()}catch(e){$("voMsg").textContent="Mikrofon başlatılamadı."}
+}
+function voDone(){
+  if(!VO)return;const v=VO;VO=null;clearInterval(v.tick);try{if(v.rec)v.rec.abort()}catch(e){}
+  $("vo").hidden=true;const w=voNorm($("vIn").value);
+  if(st){
+    if(v.kind==="puz"){$("pIn").value=w.slice(0,v.L)}
+    else if(voCanRow()){st.cur=w.slice(0,st.n);paint();if(w&&w.length!==st.n)setMsg("Duyduğum: "+w+" · "+st.n+" harf olmalı","lose")}
+    st.voice=false;
+  }
+}
+$("micBtn").addEventListener("click",()=>voStart("row"));
+$("pMic").addEventListener("click",()=>voStart("puz"));
+$("voOk").addEventListener("click",voDone);
+$("voAgain").addEventListener("click",()=>{if(VO){VO.left=10;$("voT").textContent=10;$("vIn").value="";$("voMsg").textContent="";voListen()}});
+$("vIn").addEventListener("keydown",e=>e.stopPropagation());
+$("vIn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();voDone()}});
+function voShow(){$("micBtn").hidden=cfg.voice!=="1"}
+try{const v=localStorage.getItem("lingoVoice");if(v==="1"||v==="0"){cfg.voice=v;document.querySelectorAll('.chips[data-g="voice"] .chip').forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===v))}}catch(e){}
+document.querySelector('.chips[data-g="voice"]').addEventListener("click",()=>setTimeout(()=>{voShow();try{localStorage.setItem("lingoVoice",cfg.voice||"0")}catch(e){}},0));
+voShow();
 function finish(){
   clearInterval(tick);st.over=true;
   let best=ls("lingoBest");
@@ -1127,7 +1201,9 @@ $("fcShow").onclick=()=>{if(!fcCur)return;$("fcA").textContent=fcCur;$("fcShow")
 $("fcYes").onclick=()=>{if(fcCur){SOLVED.add(fcCur);putSet("lingoSolved",SOLVED)}fcNext()};
 $("fcNo").onclick=()=>{if(fcCur){SOLVED.delete(fcCur);putSet("lingoSolved",SOLVED)}fcNext()};
 document.addEventListener("keydown",e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(!$("vo").hidden){if(e.key==="Enter"){e.preventDefault();voDone()}else if(e.key==="Escape")voDone();return}
   if(e.target&&e.target.tagName==="INPUT")return;
+  if(e.key===" "&&cfg.voice==="1"&&st&&!st.over&&$("fp").hidden){e.preventDefault();if(!$("puz").hidden){if(!$("pMic").hidden)voStart("puz")}else voStart("row");return}
   if(!$("wlOv").hidden){if(e.key==="Enter"||e.key===" "){e.preventDefault();if(!$("fc").hidden){if(!$("fcShow").hidden)$("fcShow").click()}}return}
   if(!$("codeOv").hidden)return;
   if(!$("fp").hidden){if(e.key==="Enter"){e.preventDefault();$("fpGo").click()}return}
