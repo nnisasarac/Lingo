@@ -547,6 +547,7 @@ function stageSeq(){
   if(cfg.len==="e3"){const w=L=>[...Array(4)].map(()=>({t:"w",L}));return w(5).concat([{t:"p",L:10,o:-1}],w(6),[{t:"p",L:11,o:-1}])}
   const L1=cfg.len==="e2"?5:4,P1=cfg.len==="e2"?9:8;
   const one=o=>[{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"p",L:P1,o}];
+  if(st.run&&st.bot&&cfg.len==="e1")return one(0); /* baştan sona yarışta 1. etapta bilgisayar izlenmez */
   return st.duel?one(0).concat(one(1)):one(0);
 }
 function puzMine(o){if(o==null||o<0||!st.duel)return true;return st.bot?o===0:st.race.order[o%st.race.order.length]===st.race.me}
@@ -772,6 +773,12 @@ function finish(){
   if(st.race){rp({kasa:st.kasa,done:st.done,fin:true});if(cfg.len!=="e3"){raceCarry=st.kasa;ls("lingoRaceCarry",st.kasa)}else{raceCarry=null;ls("lingoRaceCarry",0);ls("lingoLast",st.kasa)}}
   $("eRace").hidden=!st.race;$("again").textContent=st.race?"ODAYA DÖN":"TEKRAR OYNA";
   if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":cfg.len==="e2"?"2. tur bitti · kasan 3. tura taşınacak":"3. tur bitti · kasası fazla olan finale kalır";
+  if(st.run&&st.bot&&cfg.len==="e1"&&!st.practice){ /* bilgisayarın 1. etabı arka planda oynanır */
+    const pw={kolay:.55,orta:.7,zor:.85}[cfg.diff]||.7;let g=0,n=0;
+    for(let i=0;i<3;i++)if(Math.random()<pw){g+=1000;n++}
+    if(n===3)g+=1000;if(Math.random()<bd().puz)g+=2000;
+    st.botKasa+=g;st.botE1=g;
+  }
   if(st.bot&&!st.seeded)ls("lingoBotLast",st.botKasa);
   if(!st.race&&!st.practice&&!st.final&&!st.bot&&cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınacak";
   else if(!st.race)$("eLab").textContent=st.practice?"Antrenman bitti · "+st.found.length+" / "+(st.found.length+st.missed.length)+" doğru":st.bot?(cfg.len==="e1"?(st.kasa>=st.botKasa?"1. Etap bitti · öndesin":"1. Etap bitti · Bilgisayar önde"):st.kasa>st.botKasa?(cfg.len==="e2"?"Bilgisayarı geçtin · 3. etaba kaldın":"Bilgisayarı geçtin · finale kaldın"):st.kasa===st.botKasa?"Berabere":"Bilgisayar kazandı · elendin")+" · Bilgisayar: "+fmt(st.botKasa):st.race?"Yarış bitti":st.final&&st.took?"Parayı alıp çekildin · "+fmt(st.base)+" kasayla":st.final&&st.halved?"Süper Lingo bilinemedi · kazancın sıfırlandı":st.final?(st.level===4?"Süper Lingo kazanıldı · "+fmt(st.base)+" kasayla":st.level===3?"Final kazanıldı · Süper Lingo kaçtı":"Final bitti · "+fmt(st.base)+" kasayla"):"Etap bitti · kasan finale taşındı";
@@ -782,7 +789,7 @@ function finish(){
   if(st.run){
     if(st.final){RUN=null;putRun(null);$("eLab").textContent="Yarışma bitti · "+$("eLab").textContent;$("again").textContent="YENİDEN BAŞLA";st.run=false}
     else{const nx=NEXT[cfg.len],out=st.bot&&cfg.len!=="e1"&&st.botKasa>st.kasa;RUN={stage:nx,kasa:st.kasa,bot:st.botKasa};putRun(RUN);
-      if(cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınıyor";
+      if(cfg.len==="e1")$("eLab").textContent="1. Etap bitti · kasan 2. etaba taşınıyor"+(st.botE1!=null?" · Bilgisayar 1. etapta "+fmt(st.botE1)+" kazandı":"");
       $("again").textContent=(out?"YİNE DE DEVAM ET · ":"")+GONEXT[nx]}
     $("endMenu").hidden=false;
   }
