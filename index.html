@@ -690,7 +690,7 @@ function fxRain(){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)
 }catch(e){}}
 /* ---- sesli tahmin: süre durur, söylenen kelime yazılır, süre devam eder ---- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let VO=null;const VOT=5;
+let VO=null,srOff=false;const VOT=5;
 const voNorm=t=>up(String(t||"")).replace(/Â/g,"A").replace(/Î/g,"İ").replace(/Û/g,"U").replace(/[^A-ZÇĞİÖŞÜ]/g,"");
 function voCanRow(){return st&&!st.busy&&!st.over&&$("end").hidden&&$("puz").hidden&&$("fp").hidden&&$("start").hidden}
 function voStart(kind){
@@ -706,7 +706,7 @@ function voStart(kind){
 }
 function voListen(){
   if(!VO)return;
-  if(!SR){$("voMsg").textContent="Bu tarayıcı sesi kendisi tanıyamıyor: kutuya dokunup klavyedeki mikrofonla söyle.";try{$("vIn").focus()}catch(e){}return}
+  if(!SR||srOff){$("voMsg").textContent="Klavyedeki 🎤 tuşuna basıp söyle, sonra YAZ’a bas.";try{$("vIn").focus()}catch(e){}return}
   try{if(VO.rec)VO.rec.abort()}catch(e){}
   const r=new SR();VO.rec=r;r.lang="tr-TR";r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
   $("voLab").textContent=VO.step==="code"?"Dinliyorum… harfleri tek tek söyle":"Dinliyorum… · "+VO.L+" harfli kelime";
@@ -723,7 +723,8 @@ function voListen(){
     if(res.isFinal){if(pick.length===VO.L)setTimeout(()=>{if(VO&&VO.rec===r)voOk()},500);
       else{$("voMsg").textContent="Duyduğum: "+(pick||"—")+" ("+pick.length+" harf). Tekrar dinle ya da düzelt.";$("voMsg").className="msg lose"}}};
   r.onerror=ev=>{if(!VO||VO.rec!==r)return;
-    $("voMsg").textContent=ev.error==="not-allowed"||ev.error==="service-not-allowed"?"Mikrofon izni yok: kutuya dokunup klavyedeki mikrofonla söyleyebilirsin.":ev.error==="no-speech"?"Ses duyamadım, tekrar dinle.":"Ses tanınamadı ("+ev.error+").";
+    if(ev.error==="not-allowed"||ev.error==="service-not-allowed")srOff=true;
+    $("voMsg").textContent=srOff?"Mikrofon izni yok: kutuya dokunup klavyedeki 🎤 tuşuyla söyle. Bundan sonra klavye kendiliğinden açılacak.":ev.error==="no-speech"?"Ses duyamadım, tekrar dinle.":"Ses tanınamadı ("+ev.error+").";
     $("voMsg").className="msg lose";$("voLab").textContent="Süre durdu · "+VO.L+" harfli"};
   r.onend=()=>{if(VO&&VO.rec===r)$("voLab").textContent=VO.step==="code"?"Süre durdu · harf harf kodla":"Süre durdu · "+VO.L+" harfli"};
   try{r.start()}catch(e){$("voMsg").textContent="Mikrofon başlatılamadı."}
