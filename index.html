@@ -378,7 +378,7 @@ function score(g,a){const n=a.length,r=Array(n).fill("miss"),c={};
   for(let i=0;i<n;i++){if(g[i]===a[i])r[i]="hit";else c[a[i]]=(c[a[i]]||0)+1}
   for(let i=0;i<n;i++){if(r[i]!=="hit"&&c[g[i]]>0){r[i]="near";c[g[i]]--}}return r}
 
-const ROWS=[["E","R","T","Y","U","I","O","P","Ğ","Ü"],["A","S","D","F","G","H","J","K","L","Ş","İ"],["Z","C","V","B","N","M","Ö","Ç","GİR"]];
+const ROWS=[["E","R","T","Y","U","I","O","P","Ğ","Ü"],["A","S","D","F","G","H","J","K","L","Ş","İ"],["SİL","Z","C","V","B","N","M","Ö","Ç","GİR"]];
 ROWS.forEach(r=>{const d=document.createElement("div");d.className="kr";r.forEach(k=>{const b=document.createElement("button");b.className="k"+(k.length>1?" w":"");b.textContent=k==="SİL"?"⌫ Sil":k==="GİR"?"Gir ↵":k;b.dataset.k=k;b.addEventListener("click",()=>press(k));d.appendChild(b)});$("kb").appendChild(d)});
 document.querySelectorAll(".chips").forEach(g=>g.addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;document.querySelectorAll('.chips[data-g="'+g.dataset.g+'"] .chip').forEach(x=>x.setAttribute("aria-pressed",x===b));cfg[g.dataset.g]=b.dataset.v}));
 const showProg=()=>{const tot=[4,5,6,7].reduce((n,k)=>n+ANS[k].length,0)+Object.values(PUZ).reduce((n,a)=>n+a.length,0);$("reset").textContent="Bildiğin kelimeler: "+SOLVED.size+" / "+tot+" · ilerlemeyi sıfırla";$("reset").dataset.c=""};
@@ -446,9 +446,9 @@ function paint(){
 }
 function press(k){
   if(!st||st.busy||st.over||!$("end").hidden||!$("start").hidden||!$("puz").hidden||!$("lobby").hidden||!$("cd").hidden)return;
-  if(k==="SİL")return; /* yazmaya başladıktan sonra silme yok */
+  if(k==="SİL"){if(st.cur.length>0)st.cur=st.cur.slice(0,-1);paint();return}
   if(k==="GİR"){submit(false);return}
-  if(st.cur.length<st.n&&LETTERS.includes(k)){st.cur+=k;paint();voAuto()}
+  if(st.cur.length<st.n&&LETTERS.includes(k)){st.cur+=k;paint()}
 }
 $("pas").addEventListener("click",()=>{
   if(!st||!st.final||st.over||st.busy||st.paused)return;
@@ -758,7 +758,7 @@ function voDone(){
   $("vo").hidden=true;const w=v.step==="code"?voSpell($("vIn").value):voNorm($("vIn").value);
   if(st){
     if(v.kind==="puz"){$("pIn").value=w.slice(0,v.L)}
-    else if(voCanRow()){st.cur=w.slice(0,st.n);paint();if(w&&w.length!==st.n)setMsg("Duyduğum: "+w+" · "+st.n+" harf olmalı","lose");voAuto()}
+    else if(voCanRow()){st.cur=w.slice(0,st.n);paint();if(w&&w.length!==st.n)setMsg("Duyduğum: "+w+" · "+st.n+" harf olmalı","lose")}
     st.voice=false;
   }
 }
