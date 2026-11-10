@@ -651,7 +651,11 @@ function answerPuzzle(timeout){
   P.done=true;
   if(P.isSteal){
     if(ok){st.kasa+=v;markSolved(P.w);st.found.push(P.w);drawPuz(true);say("Çaldın! +"+fmt(v),"win")}
-    else if(st.race&&st.race.order.length>=3&&P.claim&&st.race.order.some(x=>!P.claim.tried.includes(x)&&x!==st.race.me)){drawPuz();say("Çalamadın · sıra diğer oyuncuda","lose");$("pGo").hidden=true}
+    else if(st.race&&st.race.order.length>=3&&P.claim&&st.race.order.some(x=>!P.claim.tried.includes(x)&&x!==st.race.me)){
+      drawPuz();say("Çalamadın · sıra diğer oyuncuda","lose");$("pGo").hidden=true;
+      rp({pzs:{g:st.race.epoch,s:st.pzStep,ok:0,v:0,r:P.claim.round}});
+      const C=P.claim;C.tried.push(st.race.me);C.win=null;C.round++;C.at=Date.now();C.seen=0;
+      P.done=false;P.isSteal=false;P.watch=true;clearInterval(P.claimT);P.claimT=setInterval(puzStealTick,300);return}
     else{P.shown=all();drawPuz("bad");say("Çalamadın · kelime: "+P.w,"lose")}
     if(st.race)rp({pzs:{g:st.race.epoch,s:st.pzStep,ok:ok?1:0,v:ok?v:0,r:P.claim?P.claim.round:0}});
     puzAfter();return;
@@ -689,10 +693,10 @@ function puzClaim(){const P=st.p,C=P&&P.claim;if(!C||C.win||C.pressed===C.round|
   C.pressed=C.round;rp({pzb:{g:st.race.epoch,s:st.pzStep,r:C.round,t:Date.now()}});$("pGo").hidden=true;
   $("pMsg").className="msg";$("pMsg").textContent="BİLDİM'e bastın · bekleniyor…"}
 function puzStealTick(){
-  const P=st&&st.p;if(!P||!P.claim||P.done){if(P)clearInterval(P.claimT);return}
+  const P=st&&st.p;if(!P||!P.claim||P.done||P.finished){if(P)clearInterval(P.claimT);return}
   const C=P.claim,me=st.race.me,o=st.race.order,ep=st.race.epoch,cand=o.filter(x=>!C.tried.includes(x));
   const say=(t,c)=>{$("pMsg").className="msg"+(c?" "+c:"");$("pMsg").textContent=t};
-  const fin=(ok,v,m)=>{clearInterval(P.claimT);$("pGo").hidden=false;P.watch=true;watchEnd(ok,v,m)};
+  const fin=(ok,v,m)=>{if(P.finished)return;P.finished=true;clearInterval(P.claimT);$("pGo").hidden=false;P.watch=true;watchEnd(ok,v,m)};
   if(C.win){if(C.win===me)return;
     const q=roomPeers().find(p=>p.peer===C.win&&p.presence.pzs&&p.presence.pzs.g===ep&&p.presence.pzs.s===st.pzStep&&p.presence.pzs.r===C.round);
     if(q){const z=q.presence.pzs;if(z.ok){fin(true,+z.v||0,nickOf(q)+" çaldı · +"+fmt(+z.v||0));return}
@@ -703,11 +707,17 @@ function puzStealTick(){
   if(!left.length){fin(false,0,"Kimse çalamadı");return}
   const cl=roomPeers().filter(p=>left.includes(p.peer)&&p.presence.pzb&&p.presence.pzb.g===ep&&p.presence.pzb.s===st.pzStep&&p.presence.pzb.r===C.round)
     .sort((a,b)=>(a.presence.pzb.t-b.presence.pzb.t)||(o.indexOf(a.peer)-o.indexOf(b.peer)));
-  if(cl.length){if(!C.seen)C.seen=Date.now();if(Date.now()-C.seen<700)return;
-    C.win=cl[0].peer;C.winAt=Date.now();$("pGo").hidden=true;
-    if(C.win===me)startPuzSteal(C.sh);else say(nickOf(cl[0])+" BİLDİM'e bastı · çalıyor…");return}
-  const rem=Math.ceil((8000-(Date.now()-C.at))/1000);
-  if(rem<=0){fin(false,0,"Kimse BİLDİM'e basmadı");return}
+  const own=C.tried[0],ownP=roomPeers().find(p=>p.peer===own),judge=own===me||(!ownP&&Date.now()-C.at>25000);
+  let dec;
+  if(judge){
+    if(cl.length){if(!C.seen)C.seen=Date.now();if(Date.now()-C.seen>=700)dec=cl[0].peer}
+    else if(Date.now()-C.at>8000)dec="";
+    if(dec!==undefined){const ps_=st.pzStep,r_=C.round;setTimeout(()=>rp({pzd:{g:ep,s:ps_,r:r_,w:dec}}),0)}
+  }else{const d=ownP&&ownP.presence.pzd;if(d&&d.g===ep&&d.s===st.pzStep&&d.r===C.round)dec=String(d.w||"")}
+  if(dec===""){fin(false,0,"Kimse BİLDİM'e basmadı");return}
+  if(dec){C.win=dec;C.winAt=Date.now();$("pGo").hidden=true;
+    if(C.win===me)startPuzSteal(C.sh);else say(peerNick(dec)+" BİLDİM'e bastı · çalıyor…");return}
+  const rem=Math.max(0,Math.ceil((8000-(Date.now()-C.at))/1000));
   const can=left.includes(me)&&!st.spect&&C.pressed!==C.round;
   $("pGo").hidden=!can;if(can)$("pGo").textContent="BİLDİM! · ÇAL";
   if(C.pressed!==C.round)say((C.round?"Çalan da bilemedi · ":"")+(can?"Bulmaca açıkta! İlk BİLDİM'e basan çalar · ":"Bulmaca açıkta · rakipler BİLDİM'e basabilir · ")+rem+" sn",can?"win":"");
@@ -1114,7 +1124,7 @@ function turnPlan(players,k,getRow,stealPick){
     if(mode==="e1"){if(r.bad||rows.length>=TRIES){end=true;break}}
     else if(mode==="e2"){if(stealBy||r.bad||rows.length>=TRIES){if(stealBy){tried.push(stealBy);stealBy=null;round++}
       const cand=players.filter(p=>!tried.includes(p));if(!cand.length){end=true;break}
-      const sb=stealPick?stealPick(cand,round):cand[0];
+      const sb=stealPick?stealPick(cand,round,own):cand[0];
       if(sb===undefined){pending={cands:cand,round};break}if(sb===null){end=true;break}
       stealBy=sb;stealRow=rows.length}}
     else{if(r.bad){if(forced&&owner===forced){end=true;break}if(!forced)forced=nxt(owner)}if(rows.length>=TRIES){end=true;break}}
@@ -1140,21 +1150,29 @@ function racePlan(){
   const o=st.race.order,k=st.done,ps=RM?RM.peers():[];
   const lists={};lists[st.race.me]=st.hist[k]||[];
   o.forEach(pl=>{if(pl===st.race.me)return;const P=ps.find(x=>x.peer===pl);const h=P&&P.presence&&P.presence.g2;lists[pl]=(h&&Array.isArray(h[k]))?h[k]:[]});
-  const pick=(o.length>=3&&cfg.len==="e2")?(cand,round)=>{
-    const key=k+"_"+round;st.sbAt=st.sbAt||{};st.sbSeen=st.sbSeen||{};if(!st.sbAt[key])st.sbAt[key]=Date.now();
+  const pick=(o.length>=3&&cfg.len==="e2")?(cand,round,own)=>{
+    const key=k+"_"+round;st.sbAt=st.sbAt||{};st.sbSeen=st.sbSeen||{};st.sbDec=st.sbDec||{};if(!st.sbAt[key])st.sbAt[key]=Date.now();
+    if(key in st.sbDec)return st.sbDec[key];
+    const ownP=ps.find(p=>p.peer===own),d=ownP&&ownP.presence&&ownP.presence.sd;
+    const amJudge=own===st.race.me||(!ownP&&Date.now()-st.sbAt[key]>25000);
+    if(!amJudge){if(d&&d.g===st.race.epoch&&d.k===k&&d.r===round){st.sbDec[key]=d.v||null;return st.sbDec[key]}return undefined}
     const cl=ps.filter(p=>cand.includes(p.peer)&&p.presence&&p.presence.sb&&p.presence.sb.g===st.race.epoch&&p.presence.sb.k===k&&p.presence.sb.r===round)
       .sort((a,b)=>(a.presence.sb.t-b.presence.sb.t)||(o.indexOf(a.peer)-o.indexOf(b.peer)));
-    if(cl.length){if(!st.sbSeen[key])st.sbSeen[key]=Date.now();return Date.now()-st.sbSeen[key]<700?undefined:cl[0].peer}
-    return Date.now()-st.sbAt[key]>8000?null:undefined}:null;
+    let v;
+    if(cl.length){if(!st.sbSeen[key])st.sbSeen[key]=Date.now();if(Date.now()-st.sbSeen[key]<700)return undefined;v=cl[0].peer}
+    else if(Date.now()-st.sbAt[key]>8000)v=null;else return undefined;
+    st.sbDec[key]=v;const ep=st.race.epoch;setTimeout(()=>rp({sd:{g:ep,k,r:round,v:v||""}}),0);return v}:null;
   return turnPlan(o,k,(i,pl)=>(lists[pl]||[]).find(x=>x&&x.i===i)||st.ghost[i],pick);
 }
 function raceRows(){return racePlan().rows}
 function raceSync(){
   if(!st||!st.race||st.over||st.paused||st.wEnded)return;
   if(!st.race.order.length)return;
-  const pl=racePlan(),rows=pl.rows;st.plan=pl;
+  const pl=racePlan(),rows=pl.rows;
+  if(st.wEnded)return; /* plan hesaplanırken iç içe çağrı bitirmiş olabilir */
+  st.plan=pl;
   if(pl.end){
-    st.wEnded=true;st.role="done";st.busy=true;drawRows(rows,null);
+    $("sbBtn").hidden=true;st.wEnded=true;st.role="done";st.busy=true;drawRows(rows,null);
     if(pl.wi>=0){const by=rows[pl.wi].by,mine=by===st.race.me,pz=prizeAt(pl.wi,pl),stole=pl.stealBy&&pl.wi===pl.stealRow;
       setMsg(mine?(stole?"Çaldın! +":"Bildin! +")+fmt(pz):peerNick(by)+(stole?" çaldı":" bildi"),mine?"win":"lose");
       raceEnd(mine?"+"+fmt(pz)+" kasaya eklendi.":peerNick(by)+" kelimeyi "+(stole?"çaldı":"buldu")+", kasasına "+fmt(pz)+" ekledi.",mine,mine?(stole?"Çaldın":"Bildin"):(stole?"Rakip çaldı":"Rakip buldu"));
