@@ -423,7 +423,9 @@ function start(race,opt){
     else if(cfg.len!=="e1"){st.kasa=RUN.kasa;st.botKasa=RUN.bot||Math.round(st.kasa*(0.7+Math.random()*0.6)/100)*100;if(!RUN.bot){RUN.bot=st.botKasa;putRun(RUN)}}}
   else runNext=false;
   $("exitBtn").hidden=!!race;$("endMenu").hidden=true;
-  if(race)rp({game:race.epoch,kasa:st.kasa,done:0,target:st.target,fin:false});
+  st.spect=!!(race&&Array.isArray(race.order)&&!race.order.includes(race.me));
+  if(race)rp({game:race.epoch,kasa:st.kasa,done:0,target:st.target,fin:false,spect:st.spect?1:0});
+  if(st.spect)setTimeout(()=>{if(st&&st.spect)setMsg("3. etaba kasası en yüksek iki kişi geçti · bu etabı izliyorsun","lose")},1200);
   $("quitBtn").hidden=!st.practice||cfg.len==="tp";$("pQuit").hidden=!st.practice;
   if(st.practice){$("kasaLab").textContent="Puan";$("rLab").textContent="Doğru"}
   updScore();
@@ -460,7 +462,7 @@ function paint(){
   if(st.race&&st.role==="active"&&st.T&&st.T.cur!==st.cur){st.T.cur=st.cur;rp({t:st.T})}
 }
 function press(k){
-  if(!st||st.busy||st.over||!$("end").hidden||!$("start").hidden||!$("puz").hidden||!$("lobby").hidden||!$("cd").hidden)return;
+  if(!st||st.spect||st.busy||st.over||!$("end").hidden||!$("start").hidden||!$("puz").hidden||!$("lobby").hidden||!$("cd").hidden)return;
   if(k==="SİL"){if(st.cur.length>0)st.cur=st.cur.slice(0,-1);paint();return}
   if(k==="GİR"){submit(false);return}
   if(st.cur.length<st.n&&LETTERS.includes(k)){st.cur+=k;paint()}
@@ -566,6 +568,7 @@ function stageSeq(){
   const L1=cfg.len==="e2"?5:4,P1=cfg.len==="e2"?9:8;
   const one=o=>[{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"w",L:L1,o},{t:"p",L:P1,o}];
   if(st.run&&st.bot&&cfg.len==="e1")return one(0); /* baştan sona yarışta 1. etapta bilgisayar izlenmez */
+  if(st.race){let a=[];for(let i=0;i<st.race.order.length;i++)a=a.concat(one(i));return a}
   return st.duel?one(0).concat(one(1)):one(0);
 }
 function puzMine(o){if(o==null||o<0||!st.duel)return true;return st.bot?o===0:st.race.order[o%st.race.order.length]===st.race.me}
@@ -577,7 +580,7 @@ function endStage(step){
   st.p={w,L,order:[0].concat(shuffle([...Array(L).keys()].slice(1))),shown:new Set([0]),done:false}; /* ilk harf her zaman açık */
   st.pzStep=st.si;
   const shared=!st.practice&&st.duel&&step.o===-1,mine=st.practice||puzMine(step.o);
-  st.p.shared=shared;st.p.watch=!mine;
+  st.p.shared=shared;st.p.watch=!mine||!!st.spect;
   const other=st.bot?BOTN:(st.race&&step.o!=null&&step.o>=0?peerNick(st.race.order[step.o%st.race.order.length]):"Rakip");
   $("pLab").textContent=st.practice?"Bulmaca antrenmanı · "+(st.puzN+1)+". soru · "+L+" harf":(shared?"Ortak bulmaca":mine?"Senin bulmacan":other+"'ın bulmacası · izliyorsun")+" · "+L+" harf";
   $("pDef").textContent=maskWord(CLUE[w]||def||"",w);
@@ -684,7 +687,7 @@ function startPuzSteal(sh){
 }
 function puzBuzz(){
   const P=st&&st.p;if(!P||P.done||P.buzz)return;
-  if(P.botBuzz||P.watch)return;P.buzz=true;clearInterval(st.pTick);
+  if(P.botBuzz||P.watch||st.spect)return;P.buzz=true;clearInterval(st.pTick);
   $("pGo").textContent="CEVAPLA";$("pForm").hidden=false;$("pIn").value="";$("pMsg").className="msg";$("pMsg").textContent="Süre durdu · 10 saniyede cevabını yaz";
   let left=10;$("pTimer").textContent=left;$("pTimer").hidden=false;$("pTimer").classList.add("low");
   if(cfg.voice==="1")$("pMic").hidden=false;else try{$("pIn").focus()}catch(e){}
@@ -797,17 +800,10 @@ function finish(){
   if(st.practice){$("quitBtn").hidden=true;$("pQuit").hidden=true}
   if(!st.final&&!st.race&&!st.practice){best=Math.max(best,st.kasa);ls("lingoBest",best);ls("lingoLast",st.kasa)}
   if(st.race){rp({kasa:st.kasa,done:st.done,fin:true});if(cfg.len!=="e3"){raceCarry=st.kasa;ls("lingoRaceCarry",st.kasa)}else{raceCarry=null;ls("lingoRaceCarry",0);ls("lingoLast",st.kasa)}}
-  $("eRace").hidden=!st.race;$("again").textContent=st.race?"ODAYA DÖN":"TEKRAR OYNA";
+  $("eRace").hidden=!st.race;$("again").hidden=false;$("again").textContent=st.race?"ODAYA DÖN":"TEKRAR OYNA";
   if(st.race)$("eLab").textContent=cfg.len==="e1"?"1. tur bitti · kasan 2. tura taşınacak":cfg.len==="e2"?"2. tur bitti · kasan 3. tura taşınacak":"3. tur bitti · kasası fazla olan finale kalır";
   st.raceNext=null;
-  if(st.race&&raceRun){
-    if(cfg.len!=="e3"){
-      if(amHost){st.raceNext="stage";$("again").textContent=GONEXT[NEXT[cfg.len]]}
-      else $("eLab").textContent+=" · oda kurucusu sonraki etabı başlatınca otomatik devam edeceksin"}
-    else{const o=oppPeer(),ov=o?(+o.presence.kasa||0):0;
-      if(st.kasa>=ov){st.raceNext="final";$("again").textContent="FİNALE GEÇ";$("eLab").textContent="3. tur bitti · finale sen kaldın!"}
-      else{$("eLab").textContent="3. tur bitti · finale "+(o?nickOf(o):"rakibin")+" kaldı";raceRun=false;st.raceNext="watch";fwWatch=true;$("again").textContent="FİNALİ İZLE"}}
-  }
+  if(st.race&&raceRun){$("again").hidden=true;$("eLab").textContent+=" · diğerleri bekleniyor…";raceAuto()}
   if(st.run&&st.bot&&cfg.len==="e1"&&!st.practice){ /* bilgisayarın 1. etabı arka planda oynanır */
     const pw={kolay:.55,orta:.7,zor:.85}[cfg.diff]||.7;let g=0,n=0;
     for(let i=0;i<3;i++)if(Math.random()<pw){g+=1000;n++}
@@ -974,7 +970,11 @@ function onRoom(ch){
   if(st&&st.race&&st.p&&st.p.shared&&!st.p.done){const w=roomPeers().find(p=>!p.sameTab&&p.presence.pzw&&p.presence.pzw.g===st.race.epoch&&p.presence.pzw.k===st.puzN);
     if(w)puzLost(nickOf(w)+" bildi · +"+fmt(+w.presence.pzw.v||0)+" · kelime: "+st.p.w)}
   if(st&&st.race&&st.p&&st.p.watch&&!st.p.done){const r=roomPeers().find(p=>!p.sameTab&&p.presence.pzr&&p.presence.pzr.g===st.race.epoch&&p.presence.pzr.s===st.pzStep);
-    if(r){const z=r.presence.pzr;if(!z.ok&&z.st&&cfg.len==="e2")startPuzSteal(+z.sh||0);else watchEnd(!!z.ok,+z.v||0,nickOf(r)+(z.ok?" bildi · +"+fmt(+z.v||0):" bilemedi"))}}
+    if(r&&!st.p.watchSteal){const z=r.presence.pzr,o=st.race.order,sb=o[(o.indexOf(r.peer)+1)%o.length];
+      if(!z.ok&&z.st&&cfg.len==="e2"){if(sb===st.race.me&&!st.spect)startPuzSteal(+z.sh||0);else{st.p.watchSteal=sb;$("pMsg").className="msg";$("pMsg").textContent=peerNick(sb)+" çalmaya çalışıyor…"}}
+      else watchEnd(!!z.ok,+z.v||0,nickOf(r)+(z.ok?" bildi · +"+fmt(+z.v||0):" bilemedi"))}
+    if(st.p.watchSteal){const q=roomPeers().find(p=>p.peer===st.p.watchSteal&&p.presence.pzs&&p.presence.pzs.g===st.race.epoch&&p.presence.pzs.s===st.pzStep);
+      if(q){const z=q.presence.pzs;watchEnd(!!z.ok,+z.v||0,nickOf(q)+(z.ok?" çaldı · +"+fmt(+z.v||0):" çalamadı"))}}}
   if(st&&st.race&&st.p&&st.p.stealWait){const r=roomPeers().find(p=>!p.sameTab&&p.presence.pzs&&p.presence.pzs.g===st.race.epoch&&p.presence.pzs.s===st.pzStep);
     if(r){const z=r.presence.pzs,P=st.p;P.stealWait=false;clearTimeout(P.stealT);P.shown=new Set([...Array(P.L).keys()]);drawPuz(z.ok?true:"bad");
       $("pMsg").className="msg "+(z.ok?"lose":"win");$("pMsg").textContent=nickOf(r)+(z.ok?" çaldı · +"+fmt(+z.v||0):" çalamadı")+" · kelime: "+P.w;puzAfter()}}
@@ -998,10 +998,34 @@ function raceNextStage(){
   if(wait.length){$("eLab").textContent="Rakibin etabı bitirmesi bekleniyor · birazdan tekrar bas";return}
   hostGo({len:NEXT[cfg.len],cnt:cfg.rcnt||"6",run:1});
 }
-function hostGo(c){
+/* baştan sona canlı yarış: herkes bitirince otomatik geçiş; 3. etaba ilk 2, finale 1 kişi */
+function raceAuto(){
+  const S=st,LEN=cfg.len;clearInterval(S.autoT);let ready=0;
+  S.autoT=setInterval(()=>{
+    if(st!==S||!RM||cfg.len!==LEN||$("end").hidden){clearInterval(S.autoT);return}
+    const all=racers(),others=all.filter(p=>!p.sameTab);
+    if(others.some(p=>!p.presence.fin)){ready=0;return}
+    if(++ready<4){$("eLab").textContent=$("eLab").textContent.replace(/ · (diğerleri bekleniyor…|sonraki etap \d sn sonra|finalist belirleniyor)$/,"")+(LEN==="e3"?" · finalist belirleniyor":" · sonraki etap "+(4-ready)+" sn sonra");return}
+    clearInterval(S.autoT);
+    const kv=p=>p.sameTab?S.kasa:(+p.presence.kasa||0);
+    if(LEN!=="e3"){
+      if(!amHost)return;
+      const nx=NEXT[LEN];let ord=null;
+      if(nx==="e3"){const ps=all;
+        if(ps.length>2)ord=ps.slice().sort((a,b)=>kv(b)-kv(a)||(S.race.order.indexOf(a.peer)-S.race.order.indexOf(b.peer))).slice(0,2).map(p=>p.peer)}
+      hostGo({len:nx,cnt:cfg.rcnt||"6",run:1},ord);return}
+    /* 3. etap bitti: kasası en fazla olan finale */
+    const pl=all.filter(p=>S.race.order.includes(p.peer)).sort((a,b)=>kv(b)-kv(a)||(S.race.order.indexOf(a.peer)-S.race.order.indexOf(b.peer)));
+    const w=pl[0];raceRun=false;
+    if(w&&w.sameTab){$("eLab").textContent="3. tur bitti · finale sen kaldın! Final başlıyor…";
+      setTimeout(()=>{if(st!==S)return;$("end").hidden=true;$("rivals").hidden=true;cfg.len="f";start();st.liveFinal=true;st.fwT=setInterval(fwSend,400)},2500)}
+    else{$("eLab").textContent="3. tur bitti · finale "+(w?nickOf(w):"rakibin")+" kaldı · finali izleyeceksin";S.raceNext="watch";fwWatch=true;$("again").hidden=false;$("again").textContent="FİNALİ İZLE"}
+  },1000);
+}
+function hostGo(c,ord){
   const epoch=Date.now(),seed=(epoch^(Math.random()*4294967296))>>>0;
   const ps=roomPeers(),me=ps.find(p=>p.sameTab);if(!me)return;
-  const order=[me.peer].concat(ps.filter(p=>!p.sameTab).map(p=>p.peer).sort());
+  const order=ord||[me.peer].concat(ps.filter(p=>!p.sameTab).map(p=>p.peer).sort());
   rp({cfg:c,seed,go:epoch,order});setTimeout(()=>rp({go:null}),10000);
   countdown(c,seed,epoch,order);
 };
@@ -1012,7 +1036,7 @@ function countdown(c,seed,epoch,order){
   let n=3;$("cdN").textContent=n;
   const t=setInterval(()=>{n--;if(n>0){$("cdN").textContent=n;return}clearInterval(t);$("cd").hidden=true;start({seed,epoch,order,me})},1000);
 }
-function racers(){if(!st||!st.race)return[];return roomPeers().filter(p=>p.presence.game===st.race.epoch)}
+function racers(){if(!st||!st.race)return[];return roomPeers().filter(p=>p.presence.game===st.race.epoch&&!p.presence.spect)}
 /* rakibin kasası: üst çubukta ve kartlarda sürekli görünür */
 function oppPeer(){return racers().filter(p=>!p.sameTab)[0]}
 function scoreBar(){
