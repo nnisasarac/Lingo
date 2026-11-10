@@ -154,6 +154,15 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
   <button class="mic" id="micBtn" type="button" hidden>🎤 SESLİ TAHMİN</button>
   <div class="kb" id="kb"></div>
 </div>
+<div class="ov" id="fwv" hidden>
+  <div class="card">
+    <div class="lab" id="fwT">Rakibin finali</div>
+    <div class="stats" style="display:flex;justify-content:space-between;gap:8px"><span>Süre <b id="fwS">—</b></span><span id="fwL">—</span><span>Kazanç <b id="fwW">—</b></span></div>
+    <div class="board" id="fwB" style="margin:8px 0"></div>
+    <div class="msg" id="fwM"></div>
+    <button class="go" id="fwX" type="button">ODAYA DÖN</button>
+  </div>
+</div>
 <div class="ov" id="vo" hidden>
   <div class="card">
     <div class="vmic" aria-hidden="true">🎤</div>
@@ -387,9 +396,11 @@ $("reset").addEventListener("click",()=>{const b=$("reset");if(b.dataset.c!=="1"
 const showBest=()=>{showProg();showRun();const b=ls("lingoBest"),l=ls("lingoLast");$("best").textContent=(b?"Etap rekorun: "+fmt(b):"")+(l?(b?" · ":"")+"Finale taşınan kasa: "+fmt(l):"")};
 showBest();
 $("go").onclick=()=>start();
+$("fwX").onclick=()=>{fwWatch=false;$("fwv").hidden=true;$("rivals").hidden=true;$("lobby").hidden=false;renderRoom()};
 $("again").onclick=()=>{
   if(st&&st.raceNext==="stage"){raceNextStage();return}
-  if(st&&st.raceNext==="final"){raceRun=false;$("end").hidden=true;$("rivals").hidden=true;cfg.len="f";start();return}
+  if(st&&st.raceNext==="final"){raceRun=false;$("end").hidden=true;$("rivals").hidden=true;cfg.len="f";start();st.liveFinal=true;st.fwT=setInterval(fwSend,400);return}
+  if(st&&st.raceNext==="watch"){$("end").hidden=true;fwOpen();return}
   if(st&&st.run&&RUN){$("end").hidden=true;runStart();return}if(st&&st.race){$("end").hidden=true;$("rivals").hidden=true;$("lobby").hidden=false;renderRoom();return}$("end").hidden=true;$("start").hidden=false;showBest()};
 
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -533,7 +544,6 @@ function submit(timeout){
 }
 function loop(){
   if(!st||st.over||st.paused||st.voice||!$("puz").hidden)return;
-  if(!st.busy&&st.cur&&st.cur.length>0)return; /* yazmaya başlayınca süre durur, tahminden sonra akar */
   if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;st.lastWord=st.ans;finish();return}}
   if(!st.busy&&!st.final){st.gt-=.1;
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
@@ -777,6 +787,7 @@ try{const v=localStorage.getItem("lingoVoice");if(v==="1"||v==="0"){cfg.voice=v;
 document.querySelector('.chips[data-g="voice"]').addEventListener("click",()=>setTimeout(()=>{voShow();try{localStorage.setItem("lingoVoice",cfg.voice||"0")}catch(e){}},0));
 voShow();
 function finish(){
+  if(st&&st.liveFinal)setTimeout(()=>fwSend(true),400);
   clearInterval(tick);st.over=true;
   let best=ls("lingoBest");
   if(st.bot)$("rivals").hidden=true;
@@ -792,7 +803,7 @@ function finish(){
       else $("eLab").textContent+=" · oda kurucusu sonraki etabı başlatınca otomatik devam edeceksin"}
     else{const o=oppPeer(),ov=o?(+o.presence.kasa||0):0;
       if(st.kasa>=ov){st.raceNext="final";$("again").textContent="FİNALE GEÇ";$("eLab").textContent="3. tur bitti · finale sen kaldın!"}
-      else{$("eLab").textContent="3. tur bitti · finale "+(o?nickOf(o):"rakibin")+" kaldı";raceRun=false}}
+      else{$("eLab").textContent="3. tur bitti · finale "+(o?nickOf(o):"rakibin")+" kaldı";raceRun=false;st.raceNext="watch";fwWatch=true;$("again").textContent="FİNALİ İZLE"}}
   }
   if(st.run&&st.bot&&cfg.len==="e1"&&!st.practice){ /* bilgisayarın 1. etabı arka planda oynanır */
     const pw={kolay:.55,orta:.7,zor:.85}[cfg.diff]||.7;let g=0,n=0;
@@ -892,7 +903,32 @@ function peerRoom(){
   }))};
 }
 /* ---------- arkadaşla yarış (room) ---------- */
-let raceCarry=null,RM0=null,RM=null,amHost=false,lastGo=null,roomCode="",raceRun=false;
+let raceCarry=null,RM0=null,RM=null,amHost=false,lastGo=null,roomCode="",raceRun=false,fwWatch=false;
+/* canlı yarışta finali rakip izler: finalist tahtasını paylaşır, diğeri izler */
+const FWC=new Set(["hit","near","miss","bad","f","ghost"]);
+function fwSend(over){
+  if(!st||!st.liveFinal)return;
+  const b=[...$("board").children].map(r=>[...r.children].map(t=>{const c=[...t.classList].find(x=>FWC.has(x))||"";return[(t.textContent||"").slice(0,1),c]}));
+  const d={L:st.n,ft:Math.max(0,Math.ceil(st.ft)),w:$("kasa").textContent.slice(0,20),m:($("fp").hidden?$("msg").textContent:"Bildi! "+$("kasa").textContent+" · devam mı, parayı alıp çekilmek mi?").slice(0,90),b,over:over?1:0};
+  if(over){d.res=$("eKasa").textContent.slice(0,20);d.lab=$("eLab").textContent.slice(0,90);d.ans=String(st.lastWord||"").slice(0,12)}
+  rp({fw:d});
+  if(over){clearInterval(st.fwT);st.liveFinal=false}
+}
+function fwOpen(){$("fwv").hidden=false;fwRender()}
+function fwRender(){
+  if($("fwv").hidden){const o=roomPeers().find(p=>!p.sameTab&&p.presence.fw);if(o&&!$("end").hidden&&st&&st.raceNext==="watch")$("end").hidden=true,$("fwv").hidden=false;else return}
+  const o=roomPeers().find(p=>!p.sameTab&&p.presence.fw);
+  $("fwT").textContent=(o?nickOf(o):"Rakibin")+" finalde";
+  if(!o){$("fwM").textContent="Rakibin finale başlaması bekleniyor…";return}
+  const d=o.presence.fw,L=Math.min(7,Math.max(4,+d.L||4));
+  $("fwS").textContent=(+d.ft||0)+" sn";$("fwL").textContent=L===7?"Süper Lingo":L+" harfli";$("fwW").textContent=String(d.w||"");
+  const B=$("fwB");B.innerHTML="";
+  (Array.isArray(d.b)?d.b:[]).slice(0,6).forEach(r=>{const row=document.createElement("div");row.className="row";row.style.gridTemplateColumns="repeat("+L+",1fr)";
+    (Array.isArray(r)?r:[]).slice(0,L).forEach(c=>{const t=document.createElement("div");const k=Array.isArray(c)&&FWC.has(c[1])?c[1]:"";t.className="t"+(k?" "+k:"");t.style.fontSize="clamp(16px,5.5vw,26px)";t.textContent=Array.isArray(c)?String(c[0]||"").slice(0,1):"";row.appendChild(t)});B.appendChild(row)});
+  $("fwM").className="msg"+(d.over?" win":"");
+  $("fwM").textContent=d.over?(String(d.lab||"Final bitti")+" · kazanç "+String(d.res||"")+(d.ans?" · kelime: "+String(d.ans):"")):String(d.m||"");
+}
+$("fwX")&&0;
 const rp=patch=>{if(RM)RM.presence(patch).catch(()=>{})};
 const esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const nickOf=p=>String((p.presence&&p.presence.nick)||"Oyuncu").slice(0,16);
@@ -930,6 +966,7 @@ function renderRoom(){
   $("rWait").textContent=amHost?(n<2?"Arkadaşının odaya katılması bekleniyor.":n+" kişi hazır. Başlatabilirsin."):"Oda kurucusunun yarışı başlatması bekleniyor.";
 }
 function onRoom(ch){
+  if(fwWatch)fwRender();
   renderRoom();renderRivals();if(!$("end").hidden&&st&&st.race)renderRace();
   if(st&&st.race&&st.p&&st.p.shared&&!st.p.done){const w=roomPeers().find(p=>!p.sameTab&&p.presence.pzw&&p.presence.pzw.g===st.race.epoch&&p.presence.pzw.k===st.puzN);
     if(w)puzLost(nickOf(w)+" bildi · +"+fmt(+w.presence.pzw.v||0)+" · kelime: "+st.p.w)}
