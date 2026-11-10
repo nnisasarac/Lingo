@@ -544,9 +544,9 @@ function submit(timeout){
 }
 function loop(){
   if(!st||st.over||st.paused||st.voice||!$("puz").hidden)return;
-  /* yazmaya başlayınca süre durur, ama her tahminde en fazla 10 saniye */
+  /* yazmaya başlayınca süre durur; 10 saniyede bitirilmezse satır kırmızı olur */
   if(!st.busy&&st.cur&&st.cur.length>0){const k=st.row+"_"+st.done+"_"+st.level;if(st.typeK!==k){st.typeK=k;st.typeP=0}
-    if(st.typeP<10){st.typeP+=.1;return}}
+    st.typeP+=.1;if(st.typeP>=10){st.typeP=0;st.typeK=null;submit(true)}return}
   if(st.final){st.ft-=.1;updScore();if(st.ft<=0){st.over=true;st.busy=true;if(!st.found.includes(st.ans)&&st.missed[st.missed.length-1]!==st.ans)st.missed.push(st.ans);if(st.risked&&st.level===3){st.halved=true;st.kasa=0;$("kasa").textContent=fmt(0)}setMsg("Final süresi doldu · kelime: "+st.ans,"lose");clearInterval(st.pTick);clearInterval(st.pBuzzT);["fp","puz"].forEach(id=>$(id).hidden=true);st.paused=false;st.lastWord=st.ans;finish();return}}
   if(!st.busy&&!st.final){st.gt-=.1;
     if(st.race&&st.role==="active"){const sc=Math.max(0,Math.ceil(st.gt));if(sc!==st.T.tl){st.T.tl=sc;rp({t:st.T})}}
