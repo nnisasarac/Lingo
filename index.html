@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}*,*::before,*::after{box-sizing:border-box}</style>
 <title>Lingo Antrenman</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -57,6 +57,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 @media (prefers-reduced-motion:reduce){.mood,.big.sad{animation:none}}
 @keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .msg{min-height:22px;font-weight:600;text-align:center;font-size:15px}
+/* iPhone: hızlı art arda basınca yakınlaştırmayı engelle */
+html,body,button,.k,.kb,.chip,input{touch-action:manipulation}
+.kb{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .mic{align-self:center;padding:10px 26px;border-radius:999px;border:2px solid var(--near);background:var(--near);color:var(--bg);font-family:var(--display);font-size:15px;letter-spacing:.04em;margin:2px 0 6px}
 .vmic{font-size:52px;text-align:center;animation:vp 1.2s ease-in-out infinite}
 @keyframes vp{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
@@ -827,6 +830,7 @@ function voDone(){
     st.voice=false;
   }
 }
+document.addEventListener("dblclick",e=>{if(e.target.closest&&e.target.closest("button,.kb"))e.preventDefault()},{passive:false});
 $("micBtn").addEventListener("click",()=>voStart("row"));
 $("sbBtn").addEventListener("click",()=>{if(!st||!st.race||!st.sbKey||st.sbPressed===st.sbKey||st.spect)return;
   st.sbPressed=st.sbKey;rp({sb:{g:st.race.epoch,k:st.done,r:st.sbRound,t:Date.now()}});$("sbBtn").hidden=true;setMsg("BİLDİM'e bastın · bekleniyor…");raceSync()});
