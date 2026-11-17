@@ -234,7 +234,8 @@ html,body,button,.k,.kb,.chip,input{touch-action:manipulation}
 </div>
 <div id="lwrap" hidden style="position:fixed;inset:0;z-index:9000;background:var(--bg)">
   <div id="lturn" style="position:absolute;left:50%;transform:translateX(-50%);top:calc(6px + env(safe-area-inset-top,0px));z-index:3;padding:6px 16px;border-radius:999px;background:var(--hit);color:#fff;font-family:var(--display);font-size:18px;letter-spacing:.04em;white-space:nowrap;pointer-events:none">Sıra: —</div>
-  <div id="lframes" style="position:absolute;inset:0;top:calc(44px + env(safe-area-inset-top,0px))"></div>
+  <div id="lscore" style="position:absolute;left:0;right:0;top:calc(42px + env(safe-area-inset-top,0px));z-index:3;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;font-size:14px;pointer-events:none"></div>
+  <div id="lframes" style="position:absolute;inset:0;top:calc(70px + env(safe-area-inset-top,0px))"></div>
   <div id="lbar" hidden style="position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;flex-wrap:wrap;justify-content:center;background:rgba(0,0,0,.55);z-index:2"></div>
   <button id="lexit" type="button" style="position:absolute;top:calc(6px + env(safe-area-inset-top,0px));right:8px;z-index:3;border:0;border-radius:999px;padding:6px 12px;background:rgba(0,0,0,.45);color:#fff;font-size:13px">✕ Çık</button>
 </div>
@@ -871,7 +872,7 @@ if(window.LOCAL){
   /* oyuncu sayfası */
   const L=window.LOCAL;let lStarted=false;
   document.body.classList.add("isLocal");
-  const sty=document.createElement("style");sty.textContent=".isLocal #sbBtn,.isLocal #exitBtn,.isLocal #lbBack{display:none!important}";document.head.appendChild(sty);
+  const sty=document.createElement("style");sty.textContent=".isLocal #sbBtn,.isLocal #exitBtn,.isLocal #lbBack,.isLocal #rivals{display:none!important}";document.head.appendChild(sty);
   $("nick").value=L.nick;
   const tryJoin=async()=>{if(RM)return;try{await enterRoom(L.code,L.slot===0)}catch(e){}if(!RM)setTimeout(tryJoin,1200)};
   const boot=()=>{if(!RM0){setTimeout(boot,200);return}$("nick").value=L.nick;$("start").hidden=true;$("lobby").hidden=false;setTimeout(tryJoin,300+L.slot*900)};setTimeout(boot,0);
@@ -886,7 +887,7 @@ if(window.LOCAL){
   setInterval(()=>{
     if(L.slot===0&&RM&&!lStarted&&roomPeers().length>=L.n){lStarted=true;cfg.rlen=L.len||"run";setTimeout(()=>$("rStart").click(),400)}
     const P=st&&st.p,hideGo=!!(P&&!P.done&&!P.isSteal&&!P.buzz&&(P.claim||P.shared));$("pGo").style.visibility=hideGo?"hidden":"";
-    parent.postMessage({lingoLocal:1,slot:L.slot,act:lAct(),buzz:lCanBuzz(),fp:!$("fp").hidden,end:!$("end").hidden,fin:!!(st&&st.final)},"*");
+    parent.postMessage({lingoLocal:1,slot:L.slot,kasa:st?(st.final?st.kasa:st.kasa):0,act:lAct(),buzz:lCanBuzz(),fp:!$("fp").hidden,end:!$("end").hidden,fin:!!(st&&st.final)},"*");
   },250);
   addEventListener("message",e=>{if(e.source!==parent)return;const m=e.data||{};
     if(m.lcmd==="buzz"){if(!$("sbBtn").hidden)$("sbBtn").click();else if(st&&st.p&&st.p.claim)puzClaim();else if(st&&st.p&&st.p.shared)puzBuzz()}
@@ -922,6 +923,9 @@ if(window.LOCAL){
     const act=S.findIndex(x=>x&&x.act);if(act>=0)lShow(act);
     const bzN=S.filter(x=>x&&x.buzz).length,tt=$("lturn");
     tt.textContent=bzN?"BİLDİM'e ilk basan çalar!":act>=0?(S[act].fin?"Finalde: ":"Sıra: ")+LW.names[act]:"Sıra: —";
+    const sc=LW.names.map((n,i)=>(i===act?"▶ ":"")+n+" "+fmt(+(S[i]&&S[i].kasa)||0)).join("|");
+    if($("lscore").dataset.k!==sc){$("lscore").dataset.k=sc;$("lscore").innerHTML="";
+      LW.names.forEach((n,i)=>{const b=document.createElement("span");b.style.cssText="padding:3px 10px;border-radius:999px;border:1px solid var(--fg);"+(i===act?"background:var(--fg);color:var(--bg);font-weight:700":"");b.textContent=n+" "+fmt(+(S[i]&&S[i].kasa)||0);$("lscore").appendChild(b)})}
     S.forEach((x,i)=>{if(i!==LW.shown&&x&&x.fp)LW.frames[i].contentWindow.postMessage({lcmd:"devam"},"*")});
     const bz=S.map((x,i)=>x&&x.buzz?i:-1).filter(i=>i>=0),bar=$("lbar"),key=bz.join(",");
     if(bar.dataset.k!==key){bar.dataset.k=key;bar.innerHTML="";
@@ -1197,7 +1201,14 @@ function racers(){if(!st||!st.race)return[];return roomPeers().filter(p=>p.prese
 function oppPeer(){return racers().filter(p=>!p.sameTab)[0]}
 function scoreBar(){
   if(!st)return;const d=!!st.duel&&!st.practice;let txt="";
-  if(d){const o=st.race?oppPeer():null,nm=st.bot?BOTN:(o?nickOf(o):"Rakip"),v=st.bot?st.botKasa:(o?(+o.presence.kasa||0):0);
+  if(d&&st.race&&(window.LOCAL||roomPeers().filter(p=>p.presence.game===st.race.epoch).length>=3)){
+    /* 3 kişi ve aynı ekranda: herkesin kasası isimle */
+    const all=roomPeers().filter(p=>p.presence.game===st.race.epoch).sort((a,b)=>st.race.order.indexOf(a.peer)-st.race.order.indexOf(b.peer));
+    txt=all.map(p=>'<span>'+esc(nickOf(p))+' <b>'+fmt(p.sameTab?st.kasa:(+p.presence.kasa||0))+'</b></span>').join("");
+    if(window.LOCAL){$("kasaLab").textContent=window.LOCAL.nick;$("rLab").textContent="Kelime";$("cnt").textContent=st.done+"/"+st.target;$("cnt").classList.remove("kasa")}
+    else{const o=oppPeer();$("rLab").textContent=o?nickOf(o):"Rakip";$("cnt").textContent=o?fmt(+o.presence.kasa||0):"";$("cnt").classList.add("kasa")}
+  }
+  else if(d){const o=st.race?oppPeer():null,nm=st.bot?BOTN:(o?nickOf(o):"Rakip"),v=st.bot?st.botKasa:(o?(+o.presence.kasa||0):0);
     $("rLab").textContent=nm;$("cnt").textContent=fmt(v);$("cnt").classList.add("kasa");
     txt='<span>Sen <b>'+fmt(st.kasa)+'</b></span><span>'+esc(nm)+' <b>'+fmt(v)+'</b></span>'}
   else $("cnt").classList.remove("kasa");
